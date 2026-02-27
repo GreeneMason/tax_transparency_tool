@@ -1,0 +1,39 @@
+function_code,description
+01,Air transportation (airports)
+02,Cemeteries
+03,Miscellaneous commercial activities
+04,Correctional institutions
+05,Other corrections
+09,Education (school building authorities)
+24,Fire protection
+32,Health
+40,Hospitals
+41,Industrial development
+42,Mortgage credit
+44,Regular highways
+45,Toll highways
+50,Housing and community development
+51,Drainage
+52,Libraries
+59,Other natural resources
+60,Parking facilities
+61,Parks and recreation
+62,Police protection
+63,Flood control
+64,Irrigation
+77,Public welfare institutions
+79,Other public welfare
+80,Sewerage
+81,Solid waste management
+86,Reclamation
+87,Sea and inland port facilities
+88,Soil and water conservation
+89,Other single-function districts
+91,Water supply utility
+92,Electric power utility
+93,Gas supply utility
+94,Mass transit system utility
+96,Fire protection and water supply - combination of services
+97,Natural resources and water supply - combination of services
+98,Sewerage and water supply - combination of services
+99,Other multifunction districts

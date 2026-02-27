@@ -1,0 +1,7 @@
+type_code,description
+0,State
+1,County
+2,City
+3,Township
+4,Special District
+5,Independent School District or Educational Service Agency

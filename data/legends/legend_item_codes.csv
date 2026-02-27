@@ -1,0 +1,210 @@
+item_code,description
+19U,Beg LT Debt O/S NEC
+29U,LTD ISS-Unsp-Other NEC
+39U,LTD Ret-Unsp-Other NEC
+49U,LTD Debt O/S-Unsp-Other NEC
+61V,Short Term Debt O/S-Beginning
+64V,Short Term Debt O/S-End of FY
+A01,Air Transportation Charges
+A03,Misc Comrcial Act NEC Charges
+A09,Elem Sec Ed Sch Lunch Charges
+A10,Elem Sec Educ Tuition and Transportation Charges
+A12,Elem Sec Educ NEC Charges
+A16,Higher Educ Auxiliary Charges
+A18,Higher Educ Tuition Charges
+A21,Education Other State Charges NEC
+A36,Hospital Charges
+A44,Regular Highway Charges
+A45,Toll Highway Charges
+A50,Housing & Comm Dev Charges
+A59,Nat Resources NEC Charges
+A60,Parking Facilities Charges
+A61,Parks & Recreation Charges
+A80,Sewerage Charges
+A81,Solid Waste Charges
+A87,Water Trans & Terminal Charges
+A89,All Other NEC Charges
+A90,Liquor Stores Revenue
+A91,Water Utilities Revenue
+A92,Electric Utilities Revenue
+A93,Gas Utilities Revenue
+A94,Transit Utilities Revenue
+B01,Federal IG Air Transportation
+B21,Federal IG Education
+B22,Federal IG Emp Security Admin 1/
+B30,Federal IG General Support
+B42,Federal IG Health & Hospitals
+B46,Federal IG Highways
+B50,Fed IG Housing & Comm Dev
+B59,Fed IG Other Natural Resources
+B79,Fed IG Public Welfare
+B80,Federal IG Sewerage
+B89,Federal IG Other
+C89,State IG Other
+D11,School Intergovernmental - Interschool System
+D21,Local IG Education
+D30,Local IG General Support
+D42,Local IG Health & Hospitals
+D46,Local IG Highways
+D50,Local IG Housing & Comm Dev
+D79,Local IG Public Welfare
+D80,Local IG Sewerage
+D89,Local IG Other
+E01,Air Trans Current Operation
+E03,Misc Comm Act-Current Oper
+E04,Correction Insts-Current Oper
+E05,Correction NEC-Current Oper
+E12,Elem Sec Educ-Current Oper
+E16,Higher Education-Aux-Cur Oper
+E18,Higher Educ Current Operation
+E21,State Education-NEC-Current Oper
+E22,Employment Sec Admin-Cur Op 1/
+E23,Financial Adm-Curr Operation
+E24,Local Fire Protection Curr Operation
+E25,Judicial-Current Operation
+E29,Central Staff-Curr Operation
+E31,General Public Bldg-Curr Oper
+E32,Health-Current Operation
+E36,Hospitals-Current Oper
+E44,Regular Highways-Current Oper
+E45,Toll Highways-Current Oper
+E50,Housing & Comm Dev-Curr Oper
+E52,Libraries-Current Operation
+E59,Natural Resources NEC-Cur Op
+E60,Parking-Current Operation
+E61,Parks & Rec-Current Operation
+E62,Police Protection-Current Oper
+E66,Protective Inspection-Curr Op
+E77,Welfare Insts-Curr Operation
+E79,Welfare NEC-Current Operation
+E80,Sewerage-Current Operation
+E81,Solid Waste Mgt - Current Oper
+E85,State Veterans' Assistance-Current Op
+E87,Water Transport-Current Oper
+E89,General NEC-Current Operation
+E90,Liquor Stores-Current Oper
+E91,Water Utilities-Current Oper
+E92,Electric Utilities-Current Op
+E93,Gas Utilities-Current Oper
+E94,Transit Utilities-Current Op
+F01,Air Trans Construction
+F03,Misc Comm Act-Construction
+F04,Correction Insts-Construction
+F05,Correction-NEC-Construction
+F12,Elem Sec Educ-Construction
+F16,Higher Education-Aux-Constr
+F18,Higher Educ Construction
+F21,State Education-NEC-Construction
+F22,Employment Sec Adm-Const
+F23,Financial Adm-Construction
+F24,Local Fire Protection Construction
+F25,Judicial-Construction
+F29,Central Staff-Construction
+F31,General Public Bldg-Constr
+F32,Health-Construction
+F36,Hospitals-Construction
+F44,Regular Highways-Construction
+F45,Toll Highways-Construction
+F50,Housing & Comm Dev-Constr
+F52,Libraries-Construction
+F59,Natural Resources NEC-Constr
+F60,Parking-Construction
+F61,Parks & Rec-Construction
+F62,Police Protection-Construction
+F66,Protective Inspection-Constr
+F77,Welfare Insts-Construction
+F79,Welfare NEC-Construction
+F80,Sewerage-Construction
+F81,Solid Waste Mgt-Construction
+F85,State Veterans' Assistance-Construction
+F87,Water Transport-Construction
+F89,General NEC-Construction
+F90,Liquor Stores-Construction
+F91,Water Utilities-Construction
+F92,Electric Utilities-Constr
+F93,Gas Utilities-Construction
+F94,Transit Utilities-Construction
+I89,General Interest on Debt
+I91,Water Utilities-Interest
+I92,Electric Utilities-Interest
+I93,Gas Utilities-Interest on Debt
+I94,Transit Utilities-Interest
+J19,Scholarships & Other Subsidies
+L89,General NEC-IG to State
+M01,Air Trans IG to Local NEC
+M04,Correctional Instituions IG to Local
+M05,Correction-NEC-IG to Local NEC
+M12,Elem Sec Educ-IG to Local NEC
+M18,Higher Educ IG to Local NEC
+M21,State Education-NEC-IG to Local NEC
+M23,Financial Adm-IG-Local NEC
+M25,Judicial-IG to Local NEC
+M29,Central Staff-IG to Local NEC
+M30,General Support-IG-Local NEC
+M32,Health-IG to Local NEC
+M36,Hospitals-IG to Local
+M44,Regular Highways-IG-Local Nec
+M50,Housing & Comm Dev-IG-Loc NEC
+M52,Libraries-IG to Local NEC
+M59,Natural Rec NEC-IG-Local NEC
+M60,Parking-IG to Local NEC
+M61,Parks & Rec-IG to Local NEC
+M62,Police Protect-IG to Local NEC
+M66,Protective Insp-IG-Local Nec
+M79,Welfare NEC-IG to Local NEC
+M80,Sewerage-IG to Local NEC
+M81,Solid Waste Mgt-IG to Locl NEC
+M87,Water Transport-IG-Local NEC
+M89,General NEC-IG-Local NEC
+Q12,Elem Sec Educ-State IG to Sch Dists (Was this ever decided?)
+Q18,Higher Educ State IG to Sch Dists
+S89,General NEC-IG to Federal
+T01,Property Tax
+T09,Total General Sales Taxes
+T10,Alcoholic Beverage Sales Tax
+T11,Amusement Tax
+T12,Insurance Premium Tax
+T13,Motor Fuels Sales Tax
+T14,Parimutuels Tax
+T15,Public Utilities Tax
+T16,Tobacco Sales Tax
+T19,Other Selective Sales Taxes
+T20,Alcoholic Beverage License Tax
+T21,Amusement License Tax
+T22,Corporation License Tax
+T23,Hunting & Fishing License
+T24,Motor Vehicle License
+T25,Motor Vehicle Operators Lic
+T27,Public Utility License Tax
+T28,"Occup & Business License, NEC"
+T29,Other License Tax
+T40,Indiv Income Tax
+T41,Corporation Net Income Tax
+T50,Death & Gift Tax
+T51,Documentary & Stock Trans Tax
+T53,Severance Tax
+T99,"Taxes, NEC"
+U01,Special Assessments
+U11,Sale of Property 2/
+U20,Interest Earnings
+U30,Fines & Forfeits
+U40,Rents
+U41,Royalties
+U50,Donations From Private Sources
+U95,Net Lottery Revenue
+U99,Misc General Revenue NEC
+Y01,Unemployment-Contribution
+Y02,Unemployment-Interest Revenue
+Y04,Unemployment-Federal Advances
+Y05,Unemployment-Benefit Payments
+Y06,Unemployment-Ext & Spec Pmts
+Y07,Unemployment-Bal In US Treas
+Y08,Unempl-Other Bal-Pos or Neg
+Y11,Workers Comp-Other Contribs
+Y12,Workers Comp-Interest Earnings
+Y14,Workers Comp-Benefit Pmts
+Y21,'Workers Comp-Cash & Assets
+Y51,Other In Trst-Other Ctrb
+Y52,Other In Trust-Interest Rev
+Y53,Other Ins Trst-Benefit Paymts
+Y61,Other Ins Trust-Cash&Deposits
