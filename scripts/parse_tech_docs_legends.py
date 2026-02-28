@@ -132,7 +132,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--pdf",
-        default="data/2023 S&L Public Use Files Technical Documentation.pdf",
+        default="data/technical docs/2023 S&L Public Use Files Technical Documentation.pdf",
         help="Path to the technical documentation PDF.",
     )
     parser.add_argument(
