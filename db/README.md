@@ -29,3 +29,7 @@ Then execute the `\copy` block from `db/load_wa_finance.sql`.
 ## 4) Query the enriched view
 
 `SELECT * FROM govlens.vw_finance_enriched LIMIT 50;`
+
+## 5) Run load validation checks
+
+`psql -d <database_name> -f db/validate_wa_load.sql`
