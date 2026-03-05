@@ -1,5 +1,3 @@
-TRUNCATE TABLE govlens.stg_finance_unit_item;
-
 -- Example load command in psql (run manually):
 -- \copy govlens.stg_finance_unit_item(
 --   unit_id,state_fips,state_abbrev,state_name,gov_type_code,gov_type_description,
@@ -40,7 +38,9 @@ ON CONFLICT (flag) DO UPDATE
 SET description = EXCLUDED.description;
 
 INSERT INTO govlens.dim_function_code (function_code, description)
-SELECT DISTINCT s.function_code, f.description
+SELECT DISTINCT
+    s.function_code,
+    COALESCE(NULLIF(f.description, ''), 'Function code ' || s.function_code)
 FROM govlens.stg_finance_unit_item s
 LEFT JOIN govlens.dim_function_code f ON f.function_code = s.function_code
 WHERE s.function_code IS NOT NULL

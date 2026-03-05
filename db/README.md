@@ -16,7 +16,11 @@ Then run the `\copy` command shown in `db/load_wa_finance.sql` to import:
 
 `psql -d <database_name>`
 
-Inside psql, execute the `\copy` block from `db/load_wa_finance.sql`.
+Inside psql, run:
+
+`TRUNCATE TABLE govlens.stg_finance_unit_item;`
+
+Then execute the `\copy` block from `db/load_wa_finance.sql`.
 
 ## 3) Promote staging data to dimensions/facts
 
