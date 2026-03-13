@@ -24,6 +24,39 @@ Environment variables (optional, defaults shown):
 - `GOVLENS_DB_PASSWORD` = `postgres`
 - `PORT` = `8080`
 
+## Endpoint 0: Health Check
+
+### Request
+
+- Method: `GET`
+- Path: `/health`
+
+### Example
+
+```bash
+curl "http://localhost:8080/health"
+```
+
+### Response (200)
+
+```json
+{
+  "status": "UP",
+  "database": "UP",
+  "timestamp": "2026-03-12T18:20:00.000Z"
+}
+```
+
+### Response (503)
+
+```json
+{
+  "status": "DEGRADED",
+  "database": "DOWN",
+  "timestamp": "2026-03-12T18:20:00.000Z"
+}
+```
+
 ## Endpoint 1: Search Governments
 
 ### Request
