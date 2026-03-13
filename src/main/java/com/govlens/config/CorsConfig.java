@@ -10,13 +10,13 @@ import java.util.Arrays;
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
 
-    @Value("${govlens.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
+    @Value("${govlens.cors.allowed-origins:http://localhost:*,http://127.0.0.1:*,null}")
     private String allowedOrigins;
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(parseAllowedOrigins())
+                .allowedOriginPatterns(parseAllowedOrigins())
                 .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .maxAge(3600);

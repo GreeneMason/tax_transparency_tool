@@ -16,10 +16,95 @@
             color: #e9e9ea;
         }
 
-        .container {
+        .nav {
+            border-bottom: 1px solid #2a2e37;
+            background: #191c22;
+        }
+
+        .nav-inner {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 24px;
+            padding: 14px 24px;
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .brand-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .brand-subtitle {
+            color: #b4b7bd;
+            font-size: 0.9rem;
+        }
+
+        .nav-search {
+            display: grid;
+            grid-template-columns: minmax(260px, 420px) 110px;
+            gap: 10px;
+        }
+
+        .nav-search-field {
+            min-width: 360px;
+        }
+
+        @media (max-width: 900px) {
+            .nav-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .nav-search-field {
+                min-width: 0;
+            }
+        }
+
+        .container {
+            max-width: 1380px;
+            margin: 0 auto;
+            padding: 20px 24px 24px;
+        }
+
+        .split-layout {
+            display: grid;
+            grid-template-columns: minmax(300px, 360px) minmax(700px, 1fr);
+            gap: 16px;
+            align-items: start;
+        }
+
+        .pane {
+            margin-bottom: 0;
+        }
+
+        .pane-section + .pane-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #2d3340;
+        }
+
+        .right-blank {
+            color: #b4b7bd;
+            margin: 0;
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .results-scroll {
+            overflow-x: auto;
+        }
+
+        @media (max-width: 1020px) {
+            .split-layout {
+                grid-template-columns: 1fr;
+            }
         }
 
         h1 {
@@ -85,6 +170,12 @@
             font-weight: 600;
         }
 
+        button:disabled {
+            background: #4d5461;
+            border-color: #4d5461;
+            cursor: not-allowed;
+        }
+
         .status {
             font-weight: 600;
         }
@@ -101,6 +192,19 @@
             color: #ff9b9b;
             margin-top: 8px;
             min-height: 20px;
+        }
+
+        .sub-row {
+            display: grid;
+            grid-template-columns: 170px 180px;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .sub-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .profile-grid {
@@ -124,6 +228,92 @@
         .profile-value {
             font-size: 0.98rem;
             font-weight: 600;
+        }
+
+        .chart-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 18px;
+            align-items: start;
+        }
+
+        @media (max-width: 860px) {
+            .chart-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .pie {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            border: 1px solid #2f3544;
+            margin: 0 auto;
+        }
+
+        .legend-swatch {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        .category-cell {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category-row-expandable {
+            cursor: pointer;
+        }
+
+        .category-row-expandable.is-open td {
+            border-bottom-color: transparent;
+        }
+
+        .category-arrow {
+            display: inline-block;
+            width: 12px;
+            color: #d6d9e2;
+            font-weight: 700;
+            transform: rotate(0deg);
+            transition: transform 0.15s ease;
+        }
+
+        .category-row-expandable.is-open .category-arrow {
+            transform: rotate(90deg);
+        }
+
+        .item-detail-row td {
+            background: #151922;
+            padding: 10px;
+        }
+
+        .item-detail-title {
+            font-size: 0.82rem;
+            color: #aeb5c8;
+            margin-bottom: 8px;
+        }
+
+        .item-detail-list {
+            display: grid;
+            gap: 4px;
+        }
+
+        .item-detail-entry {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 120px 90px;
+            gap: 8px;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .item-label {
+            color: #d6d9e2;
+            overflow-wrap: anywhere;
         }
 
         table {
@@ -153,53 +343,259 @@
             padding: 6px 10px;
             font-size: 0.85rem;
         }
+
+        .top-error {
+            margin: 0 0 10px;
+            min-height: 20px;
+        }
+
+        .estimate-wrap {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid #2d3340;
+        }
+
+        .estimate-input-row {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .estimate-total {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .estimate-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .zip-tiles-status {
+            margin: 0 0 8px;
+        }
+
+        .income-status-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin: 0 0 10px;
+        }
+
+        .income-tax-status {
+            margin: 0;
+            color: #b4b7bd;
+        }
+
+        .income-mode-badge {
+            display: inline-block;
+            border: 1px solid #3a4360;
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            min-width: 72px;
+            text-align: center;
+        }
+
+        .income-mode-badge.on {
+            border-color: #2f8f62;
+            color: #3cd68a;
+        }
+
+        .income-mode-badge.off {
+            border-color: #5a6170;
+            color: #c7ccd8;
+        }
+
+        .income-mode-badge.checking {
+            border-color: #6f78a3;
+            color: #a8b6e9;
+        }
+
+        .zip-tiles-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .zip-tile {
+            border: 1px solid #2d3340;
+            border-radius: 10px;
+            background: #151922;
+            padding: 10px;
+        }
+
+        .zip-tile-title {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .zip-tile-meta {
+            color: #b4b7bd;
+            font-size: 0.88rem;
+            margin-bottom: 8px;
+        }
+
+        .zip-tile-badge {
+            display: inline-block;
+            border: 1px solid #3a4360;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            color: #d7def2;
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 640px) {
+            .nav-search {
+                grid-template-columns: 1fr;
+            }
+
+            .estimate-input-row {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>GovLens: Washington Government Lookup</h1>
-    <div class="muted">Pivoted UI: discover one government at a time. APIs are unchanged and still available for other clients.</div>
-
-    <div class="card">
-        API Health: <span id="healthStatus" class="status">Checking...</span>
-    </div>
-
-    <div class="card">
-        <div class="field">
+<div class="nav">
+    <div class="nav-inner">
+        <div>
+            <div class="brand-title">GovLens: Washington Government Lookup</div>
+            <div class="brand-subtitle">Option 1 MVP estimate based on location + income</div>
+        </div>
+        <div class="field nav-search-field">
             <label for="searchQuery">Search Washington Governments</label>
-            <div class="search-row">
+            <div class="nav-search">
                 <input id="searchQuery" type="text" placeholder="Try Seattle, King, Spokane, etc." autocomplete="off" />
                 <button id="searchBtn">Search</button>
             </div>
         </div>
-        <div id="errorText" class="error"></div>
     </div>
+</div>
+<div class="container">
+    <div class="split-layout">
+        <div class="card pane">
+            <div class="pane-section">
+                API Health: <span id="healthStatus" class="status">Checking...</span>
+            </div>
 
-    <div class="card">
-        <h3 style="margin-top: 0;">Selected Government</h3>
-        <div id="selectedPlaceholder" class="muted">Select a government from the search results below.</div>
-        <div id="selectedProfile" class="profile-grid" style="display: none;"></div>
-    </div>
+            <div class="pane-section">
+                <div id="errorText" class="error top-error"></div>
+            </div>
 
-    <div class="card">
-        <h3 style="margin-top: 0;">Search Results</h3>
-        <table>
-            <thead>
-            <tr>
-                <th>Name</th>
-                <th>County</th>
-                <th>Type</th>
-                <th class="right">Population</th>
-                <th>Unit ID</th>
-                <th>Action</th>
-            </tr>
-            </thead>
-            <tbody id="resultsBody">
-            <tr>
-                <td colspan="6" class="muted">Run a search to view matching governments.</td>
-            </tr>
-            </tbody>
-        </table>
+            <div class="pane-section">
+                <h3 style="margin-top: 0;">ZIP + Income Inputs</h3>
+                <div class="muted" style="margin-bottom: 10px;">Use ZIP and income on the left, then choose a government tile or result.</div>
+                <div class="estimate-input-row">
+                    <div class="field">
+                        <label for="incomeInput">Annual Household Income ($)</label>
+                        <input id="incomeInput" name="householdIncome" type="number" min="0" step="1000" value="75000" autocomplete="off" />
+                    </div>
+                    <div class="field">
+                        <label for="zipCodeInput">ZIP Code</label>
+                        <input id="zipCodeInput" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" placeholder="98101" />
+                    </div>
+                </div>
+                <div class="income-status-row">
+                    <div id="incomeTaxStatusText" class="income-tax-status">Select a government to determine whether local income tax applies.</div>
+                    <span id="incomeTaxModeBadge" class="income-mode-badge off">OFF</span>
+                </div>
+                <div class="estimate-actions">
+                    <button id="generateZipTilesBtn" type="button" class="small-btn">Generate ZIP Government Tiles</button>
+                </div>
+                <div id="zipTilesStatus" class="muted zip-tiles-status">Enter a ZIP code and click generate to list matching governments as tiles.</div>
+                <div id="zipTilesGrid" class="zip-tiles-grid"></div>
+            </div>
+
+            <div class="pane-section">
+                <h3 style="margin-top: 0;">Search Results</h3>
+                <div class="results-scroll">
+                    <table>
+                        <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>County</th>
+                            <th>Type</th>
+                            <th class="right">Population</th>
+                            <th>Unit ID</th>
+                            <th>Action</th>
+                        </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        <tr>
+                            <td colspan="6" class="muted">Run a search to view matching governments.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card pane">
+            <div id="rightBlankState" class="right-blank">Select a government from the left to view details and the pie chart.</div>
+
+            <div id="rightContent" style="display: none;">
+                <div class="pane-section">
+                    <h3 style="margin-top: 0;">Selected Government</h3>
+                    <div id="selectedPlaceholder" class="muted">Select a government from the search results below.</div>
+                    <div id="selectedProfile" class="profile-grid" style="display: none;"></div>
+
+                    <div class="sub-row">
+                        <div class="field">
+                            <label for="expenseYearInput">Expense Year</label>
+                            <input id="expenseYearInput" name="expenseYear" type="number" min="1900" max="2100" value="2023" autocomplete="off" />
+                        </div>
+                        <div class="field" style="align-self: end;">
+                            <button id="loadChartBtn" disabled>Reload Expense Chart</button>
+                        </div>
+                    </div>
+
+                    <div class="estimate-wrap">
+                        <h3 style="margin: 0 0 8px;">Your Estimated Share</h3>
+                        <div id="estimatePlaceholder" class="muted">Load expense chart to generate your estimated personal category breakdown.</div>
+                        <div id="estimateWrap" style="display: none;">
+                            <div id="estimateSummary" class="muted"></div>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="right">Estimated Share ($)</th>
+                                    <th class="right">Percent</th>
+                                </tr>
+                                </thead>
+                                <tbody id="estimateBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pane-section">
+                    <h3 style="margin-top: 0;">Expense Category Breakdown</h3>
+                    <div id="chartPlaceholder" class="muted">Select a government to auto-load expense categories. Change year any time.</div>
+                    <div id="chartWrap" class="chart-layout" style="display: none;">
+                        <div id="pieChart" class="pie"></div>
+                        <div>
+                            <div id="chartSummary" class="muted"></div>
+                            <table>
+                                <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th class="right">Amount ($)</th>
+                                    <th class="right">Percent</th>
+                                </tr>
+                                </thead>
+                                <tbody id="legendBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -211,14 +607,112 @@
     const resultsBody = document.getElementById("resultsBody");
     const selectedPlaceholder = document.getElementById("selectedPlaceholder");
     const selectedProfile = document.getElementById("selectedProfile");
+    const expenseYearInput = document.getElementById("expenseYearInput");
+    const loadChartBtn = document.getElementById("loadChartBtn");
+    const chartPlaceholder = document.getElementById("chartPlaceholder");
+    const chartWrap = document.getElementById("chartWrap");
+    const pieChart = document.getElementById("pieChart");
+    const chartSummary = document.getElementById("chartSummary");
+    const legendBody = document.getElementById("legendBody");
+    const incomeInput = document.getElementById("incomeInput");
+    const incomeTaxStatusText = document.getElementById("incomeTaxStatusText");
+    const incomeTaxModeBadge = document.getElementById("incomeTaxModeBadge");
+    const zipCodeInput = document.getElementById("zipCodeInput");
+    const generateZipTilesBtn = document.getElementById("generateZipTilesBtn");
+    const zipTilesStatus = document.getElementById("zipTilesStatus");
+    const zipTilesGrid = document.getElementById("zipTilesGrid");
+    const rightBlankState = document.getElementById("rightBlankState");
+    const rightContent = document.getElementById("rightContent");
+    const estimatePlaceholder = document.getElementById("estimatePlaceholder");
+    const estimateWrap = document.getElementById("estimateWrap");
+    const estimateSummary = document.getElementById("estimateSummary");
+    const estimateBody = document.getElementById("estimateBody");
 
     let latestResults = [];
+    let selectedGovernment = null;
+    let latestExpenseData = null;
+    let hasIncomeTaxForSelection = null;
+
+    const OPTION1_BASELINE_INCOME = 75000;
+    const OPTION1_MIN_FACTOR = 0.25;
+    const OPTION1_MAX_FACTOR = 4;
+
+    const configuredApiBase = window.localStorage.getItem("govlensApiBase") || "";
+    const fallbackApiBase = "http://localhost:8081";
+
+    const pieColors = [
+        "#4E79A7",
+        "#F28E2B",
+        "#E15759",
+        "#76B7B2",
+        "#59A14F",
+        "#EDC948",
+        "#B07AA1",
+        "#FF9DA7"
+    ];
+
+    const AGGREGATED_BUCKET_CATEGORY_NAMES = new Set([
+        "Current Operations",
+        "Construction",
+        "Interest on Debt",
+        "Assistance & Subsidies",
+        "Intergovernmental Expenditures",
+        "Other Expenses"
+    ]);
 
     function formatNumber(value) {
         if (value === null || value === undefined) {
             return "-";
         }
         return Number(value).toLocaleString();
+    }
+
+    function formatRawDollarsFromThousands(valueInThousands) {
+        if (valueInThousands === null || valueInThousands === undefined) {
+            return "-";
+        }
+        return (Number(valueInThousands) * 1000).toLocaleString();
+    }
+
+    function formatCurrency(value) {
+        if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+            return "-";
+        }
+        return `$${Math.round(Number(value)).toLocaleString()}`;
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+    }
+
+    function normalizeZipCode(rawValue) {
+        return (rawValue || "").trim();
+    }
+
+    function normalizeInitialFormValues() {
+        const currentIncome = Number(incomeInput.value);
+        const currentYear = Number(expenseYearInput.value);
+
+        const incomeMatchesYear = Number.isFinite(currentIncome)
+            && Number.isFinite(currentYear)
+            && currentIncome === currentYear;
+
+        if (!Number.isFinite(currentIncome) || currentIncome <= 0 || incomeMatchesYear) {
+            incomeInput.value = String(OPTION1_BASELINE_INCOME);
+        }
+
+        if (!Number.isFinite(currentYear) || currentYear < 1900 || currentYear > 2100) {
+            expenseYearInput.value = "2023";
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
     }
 
     function debounce(fn, wait = 250) {
@@ -229,9 +723,26 @@
         };
     }
 
+    async function apiFetch(path, options) {
+        const primaryUrl = `${configuredApiBase}${path}`;
+
+        try {
+            const primaryResponse = await fetch(primaryUrl, options);
+            if (configuredApiBase === "" && primaryResponse.status === 404) {
+                return fetch(`${fallbackApiBase}${path}`, options);
+            }
+            return primaryResponse;
+        } catch (error) {
+            if (configuredApiBase !== "") {
+                throw error;
+            }
+            return fetch(`${fallbackApiBase}${path}`, options);
+        }
+    }
+
     async function fetchHealth() {
         try {
-            const response = await fetch("/health");
+            const response = await apiFetch("/health");
             const data = await response.json();
             const isUp = response.ok && data.status === "UP";
             healthStatus.textContent = `${data.status} (DB: ${data.database})`;
@@ -243,7 +754,7 @@
     }
 
     async function searchGovernments(query) {
-        const response = await fetch(`/api/v1/governments?query=${encodeURIComponent(query)}&limit=25`);
+        const response = await apiFetch(`/api/v1/governments?query=${encodeURIComponent(query)}&limit=25`);
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || "Search failed.");
@@ -251,16 +762,98 @@
         return response.json();
     }
 
-    function renderSelectedGovernment(gov) {
-        if (!gov) {
-            selectedPlaceholder.style.display = "block";
-            selectedProfile.style.display = "none";
-            selectedProfile.innerHTML = "";
+    async function fetchGovernmentsByZip(zipCode) {
+        const response = await apiFetch(`/api/v1/governments/by-zip?zip=${encodeURIComponent(zipCode)}&limit=100`);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || "ZIP lookup failed.");
+        }
+        return response.json();
+    }
+
+    async function fetchExpenseBreakdown(unitId, year) {
+        const response = await apiFetch(`/api/v1/governments/${encodeURIComponent(unitId)}/expense-breakdown?year=${encodeURIComponent(year)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to load expense breakdown.");
+        }
+        return data;
+    }
+
+    async function fetchIncomeTaxStatus(unitId, year) {
+        const response = await apiFetch(`/api/v1/governments/${encodeURIComponent(unitId)}/income-tax-status?year=${encodeURIComponent(year)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to load income tax status.");
+        }
+        return data;
+    }
+
+    function setIncomeModeBadge(mode) {
+        incomeTaxModeBadge.classList.remove("on", "off", "checking");
+        incomeTaxModeBadge.classList.add(mode);
+
+        if (mode === "on") {
+            incomeTaxModeBadge.textContent = "ON";
             return;
         }
 
+        if (mode === "checking") {
+            incomeTaxModeBadge.textContent = "CHECKING";
+            return;
+        }
+
+        incomeTaxModeBadge.textContent = "OFF";
+    }
+
+    function setIncomeTaxStatusLoading(year) {
+        incomeTaxStatusText.textContent = `Checking local income tax (T09) for ${year}...`;
+        setIncomeModeBadge("checking");
+    }
+
+    function resetIncomeTaxToggle(message = "Select a government to determine whether local income tax applies.") {
+        hasIncomeTaxForSelection = null;
+        incomeTaxStatusText.textContent = message;
+        setIncomeModeBadge("off");
+    }
+
+    function applyIncomeTaxStatus(status) {
+        hasIncomeTaxForSelection = status?.hasIncomeTax === true;
+        const year = status?.year ?? (Number(expenseYearInput.value) || 2023);
+
+        if (hasIncomeTaxForSelection) {
+            incomeTaxStatusText.textContent = `Local income tax detected (T09) for ${year}. Income weighting is ON.`;
+            setIncomeModeBadge("on");
+            return;
+        }
+
+        incomeTaxStatusText.textContent = `No local income tax detected (T09) for ${year}. Income weighting is OFF.`;
+        setIncomeModeBadge("off");
+    }
+
+    function renderSelectedGovernment(gov) {
+        if (!gov) {
+            rightBlankState.style.display = "flex";
+            rightContent.style.display = "none";
+            selectedPlaceholder.style.display = "block";
+            selectedProfile.style.display = "none";
+            selectedProfile.innerHTML = "";
+            loadChartBtn.disabled = true;
+            latestExpenseData = null;
+            chartWrap.style.display = "none";
+            chartPlaceholder.style.display = "block";
+            chartPlaceholder.textContent = "Select a government to auto-load expense categories. Change year any time.";
+            resetIncomeTaxToggle();
+            resetPersonalEstimate("Load expense chart to generate your estimated personal category breakdown.");
+            return;
+        }
+
+        rightBlankState.style.display = "none";
+        rightContent.style.display = "block";
+        setIncomeTaxStatusLoading(Number(expenseYearInput.value) || 2023);
         selectedPlaceholder.style.display = "none";
         selectedProfile.style.display = "grid";
+        loadChartBtn.disabled = false;
         selectedProfile.innerHTML = `
             <div><div class="profile-key">Name</div><div class="profile-value">${gov.unitName || "-"}</div></div>
             <div><div class="profile-key">Unit ID</div><div class="profile-value">${gov.unitId || "-"}</div></div>
@@ -269,6 +862,256 @@
             <div><div class="profile-key">State</div><div class="profile-value">${gov.stateName || "-"} (${gov.stateAbbrev || "-"})</div></div>
             <div><div class="profile-key">Population</div><div class="profile-value">${formatNumber(gov.population)}</div></div>
         `;
+    }
+
+    function resetPersonalEstimate(message) {
+        estimateWrap.style.display = "none";
+        estimatePlaceholder.style.display = "block";
+        estimatePlaceholder.textContent = message;
+        estimateSummary.textContent = "";
+        estimateBody.innerHTML = "";
+    }
+
+    function renderZipGovernmentTiles(governments, zipCode, source) {
+        zipTilesGrid.innerHTML = "";
+
+        if (!governments.length) {
+            zipTilesStatus.textContent = `No governments were returned for ZIP ${zipCode}. To make this reliable, add a ZIP→government crosswalk dataset (ZIP/ZCTA to unit_id).`;
+            return;
+        }
+
+        zipTilesStatus.textContent = `Generated ${governments.length} government tile(s) for ZIP ${zipCode} (${source}).`;
+
+        governments.forEach((gov) => {
+            const matchLabel = source === "HUD ZIP crosswalk"
+                ? "County-level match"
+                : "Fallback match";
+
+            const tile = document.createElement("div");
+            tile.className = "zip-tile";
+            tile.innerHTML = `
+                <div class="zip-tile-title">${escapeHtml(gov.unitName || "Unknown Government")}</div>
+                <div class="zip-tile-badge">${escapeHtml(matchLabel)}</div>
+                <div class="zip-tile-meta">
+                    ${escapeHtml(gov.countyName || "Unknown County")} • ${escapeHtml(gov.govTypeDescription || "Unknown Type")}<br/>
+                    Unit ID: ${escapeHtml(gov.unitId || "-")} • Population: ${escapeHtml(formatNumber(gov.population))}
+                </div>
+                <button type="button" class="small-btn">Use This Government</button>
+            `;
+
+            const useButton = tile.querySelector("button");
+            useButton.addEventListener("click", () => {
+                selectedGovernment = gov;
+                latestExpenseData = null;
+                renderSelectedGovernment(gov);
+                errorText.textContent = "";
+                loadExpenseChart();
+            });
+
+            zipTilesGrid.appendChild(tile);
+        });
+    }
+
+    async function generateZipAlignedTiles() {
+        const zipCode = normalizeZipCode(zipCodeInput.value);
+        if (!/^\d{5}$/.test(zipCode)) {
+            zipTilesStatus.textContent = "Enter a valid 5-digit ZIP code before generating tiles.";
+            zipTilesGrid.innerHTML = "";
+            return;
+        }
+
+        zipTilesStatus.textContent = `Loading governments for ZIP ${zipCode}...`;
+        zipTilesGrid.innerHTML = "";
+
+        try {
+            const governmentsFromZip = await fetchGovernmentsByZip(zipCode);
+            if (governmentsFromZip.length) {
+                renderZipGovernmentTiles(governmentsFromZip, zipCode, "HUD ZIP crosswalk");
+                return;
+            }
+
+            const fallbackGovernments = await searchGovernments(zipCode);
+            renderZipGovernmentTiles(fallbackGovernments, zipCode, "name/place fallback");
+        } catch (error) {
+            try {
+                const fallbackGovernments = await searchGovernments(zipCode);
+                renderZipGovernmentTiles(fallbackGovernments, zipCode, "name/place fallback");
+                errorText.textContent = "ZIP lookup table unavailable; showing fallback results.";
+            } catch (fallbackError) {
+                zipTilesStatus.textContent = "Unable to generate ZIP tiles right now.";
+                errorText.textContent = fallbackError.message || error.message || "Unable to generate ZIP tiles.";
+            }
+        }
+    }
+
+    function renderPersonalEstimate() {
+        if (!selectedGovernment || !latestExpenseData || !latestExpenseData.categories?.length) {
+            resetPersonalEstimate("Load expense chart to generate your estimated personal category breakdown.");
+            return;
+        }
+
+        const income = Number(incomeInput.value);
+        if (!Number.isFinite(income) || income < 0) {
+            resetPersonalEstimate("Enter a valid annual household income (0 or greater).");
+            return;
+        }
+
+        const zipCode = normalizeZipCode(zipCodeInput.value);
+        if (zipCode && !/^\d{5}$/.test(zipCode)) {
+            resetPersonalEstimate("Enter a valid 5-digit ZIP code.");
+            return;
+        }
+
+        const totalExpensesRaw = Number(latestExpenseData.totalExpensesThousands || 0) * 1000;
+        const population = Number(selectedGovernment.population || latestExpenseData.government?.population || 0);
+        if (totalExpensesRaw <= 0 || population <= 0) {
+            resetPersonalEstimate("Missing population or expense totals for Option 1 estimate.");
+            return;
+        }
+
+        const incomeWeightEnabled = hasIncomeTaxForSelection === true;
+        const incomeFactor = incomeWeightEnabled
+            ? clamp(income / OPTION1_BASELINE_INCOME, OPTION1_MIN_FACTOR, OPTION1_MAX_FACTOR)
+            : 1;
+        const estimatedTotalShare = (totalExpensesRaw / population) * incomeFactor;
+
+        let incomeModeText = "local income tax status unavailable; income weighting left OFF";
+        if (hasIncomeTaxForSelection === true) {
+            incomeModeText = `income factor ${incomeFactor.toFixed(2)}x vs baseline ${formatCurrency(OPTION1_BASELINE_INCOME)}`;
+        } else if (hasIncomeTaxForSelection === false) {
+            incomeModeText = "local income tax not detected (T09); income weighting fixed at 1.00x";
+        }
+
+        estimatePlaceholder.style.display = "none";
+        estimateWrap.style.display = "block";
+        estimateSummary.innerHTML = `
+            <span class="estimate-total">Estimated Total Personal Share: ${formatCurrency(estimatedTotalShare)}</span><br/>
+            ${selectedGovernment.unitName} (${latestExpenseData.year}) • ZIP ${zipCode || "Not provided"} • ${incomeModeText}
+        `;
+
+        estimateBody.innerHTML = "";
+        latestExpenseData.categories.forEach((category) => {
+            const categoryRaw = Number(category.amountThousands || 0) * 1000;
+            const percent = totalExpensesRaw > 0 ? (categoryRaw * 100) / totalExpensesRaw : 0;
+            const estimatedShare = totalExpensesRaw > 0 ? (categoryRaw / totalExpensesRaw) * estimatedTotalShare : 0;
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${category.category}</td>
+                <td class="right">${formatCurrency(estimatedShare)}</td>
+                <td class="right">${percent.toFixed(2)}%</td>
+            `;
+            estimateBody.appendChild(row);
+        });
+    }
+
+    function renderExpenseChart(data) {
+        const categories = data.categories || [];
+        if (!categories.length || !data.totalExpensesThousands) {
+            latestExpenseData = null;
+            chartWrap.style.display = "none";
+            chartPlaceholder.style.display = "block";
+            chartPlaceholder.textContent = "No expense category data found for this government and year.";
+            resetPersonalEstimate("No expense category data found for Option 1 estimate in this year.");
+            return;
+        }
+
+        latestExpenseData = data;
+
+        chartPlaceholder.style.display = "none";
+        chartWrap.style.display = "grid";
+
+        let start = 0;
+        const segments = categories.map((row, idx) => {
+            const percent = (Number(row.amountThousands || 0) * 100) / Number(data.totalExpensesThousands || 1);
+            const end = start + percent;
+            const color = pieColors[idx % pieColors.length];
+            const segment = `${color} ${start}% ${end}%`;
+            start = end;
+            return {
+                ...row,
+                color,
+                computedPercent: percent,
+                segment
+            };
+        });
+
+        pieChart.style.background = `conic-gradient(${segments.map((s) => s.segment).join(",")})`;
+        chartSummary.textContent = `${data.government.unitName} (${data.year}) • Total Expenses: ${formatRawDollarsFromThousands(data.totalExpensesThousands)} ($)`;
+
+        legendBody.innerHTML = "";
+        segments.forEach((segment) => {
+            const detailItems = Array.isArray(segment.items) ? segment.items : [];
+            const isAggregatedBucket = segment.aggregatedBucket === true
+                || AGGREGATED_BUCKET_CATEGORY_NAMES.has(segment.category);
+            const hasDetails = isAggregatedBucket;
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td>
+                    <div class="category-cell">
+                        ${hasDetails ? `<span class="category-arrow" aria-hidden="true">▸</span>` : ""}
+                        <span><span class="legend-swatch" style="background:${segment.color}"></span>${segment.category}</span>
+                    </div>
+                </td>
+                <td class="right">${formatRawDollarsFromThousands(segment.amountThousands)}</td>
+                <td class="right">${segment.computedPercent.toFixed(2)}%</td>
+            `;
+            legendBody.appendChild(tr);
+
+            if (!hasDetails) {
+                return;
+            }
+
+            tr.classList.add("category-row-expandable");
+            tr.setAttribute("role", "button");
+            tr.setAttribute("tabindex", "0");
+            tr.setAttribute("aria-expanded", "false");
+
+            const detailRow = document.createElement("tr");
+            detailRow.className = "item-detail-row";
+            detailRow.style.display = "none";
+
+            const detailItemsHtml = detailItems.length
+                ? detailItems
+                    .map((item) => `
+                        <div class="item-detail-entry">
+                            <div class="item-label">${escapeHtml(item.itemCode)} - ${escapeHtml(item.itemDescription || "")}</div>
+                            <div class="right">${formatRawDollarsFromThousands(item.amountThousands)}</div>
+                            <div class="right">${Number(item.percentageWithinCategory || 0).toFixed(2)}%</div>
+                        </div>
+                    `)
+                    .join("")
+                : `<div class="muted" style="margin: 0;">No item-level rows available for this bucket in the current API response.</div>`;
+
+            detailRow.innerHTML = `
+                <td colspan="3">
+                    <div class="item-detail-title">Items within ${escapeHtml(segment.category)} (share of this bucket)</div>
+                    <div class="item-detail-list">${detailItemsHtml}</div>
+                </td>
+            `;
+            legendBody.appendChild(detailRow);
+
+            const toggleRow = () => {
+                const isOpen = detailRow.style.display !== "none";
+                detailRow.style.display = isOpen ? "none" : "table-row";
+                tr.classList.toggle("is-open", !isOpen);
+                tr.setAttribute("aria-expanded", isOpen ? "false" : "true");
+            };
+
+            tr.addEventListener("click", () => {
+                toggleRow();
+            });
+
+            tr.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    toggleRow();
+                }
+            });
+        });
+
+        renderPersonalEstimate();
     }
 
     function renderResults(results) {
@@ -297,9 +1140,50 @@
         resultsBody.querySelectorAll("button[data-index]").forEach((button) => {
             button.addEventListener("click", () => {
                 const gov = latestResults[Number(button.dataset.index)];
+                selectedGovernment = gov;
+                latestExpenseData = null;
                 renderSelectedGovernment(gov);
+                errorText.textContent = "";
+                loadExpenseChart();
             });
         });
+    }
+
+    async function loadExpenseChart() {
+        if (!selectedGovernment) {
+            errorText.textContent = "Select a government first.";
+            return;
+        }
+
+        const year = Number(expenseYearInput.value);
+        if (!Number.isInteger(year) || year < 1900 || year > 2100) {
+            errorText.textContent = "Enter a valid year between 1900 and 2100.";
+            return;
+        }
+
+        errorText.textContent = "";
+        setIncomeTaxStatusLoading(year);
+        try {
+            const data = await fetchExpenseBreakdown(selectedGovernment.unitId, year);
+
+            try {
+                const incomeTaxStatus = await fetchIncomeTaxStatus(selectedGovernment.unitId, year);
+                applyIncomeTaxStatus(incomeTaxStatus);
+            } catch (statusError) {
+                hasIncomeTaxForSelection = null;
+                incomeTaxStatusText.textContent = "Income tax status unavailable; income weighting left OFF.";
+            }
+
+            renderExpenseChart(data);
+        } catch (error) {
+            latestExpenseData = null;
+            chartWrap.style.display = "none";
+            chartPlaceholder.style.display = "block";
+            chartPlaceholder.textContent = "Unable to load expense chart.";
+            errorText.textContent = error.message || "Unable to load expense chart.";
+            resetIncomeTaxToggle("Unable to determine local income tax status.");
+            resetPersonalEstimate("Unable to compute Option 1 estimate until chart data loads.");
+        }
     }
 
     async function runSearch() {
@@ -320,8 +1204,37 @@
     }
 
     const debouncedSearch = debounce(runSearch, 300);
+    const debouncedChartReload = debounce(() => {
+        if (selectedGovernment) {
+            loadExpenseChart();
+        }
+    }, 300);
+    const debouncedEstimateRender = debounce(() => {
+        renderPersonalEstimate();
+    }, 200);
 
     searchBtn.addEventListener("click", runSearch);
+    loadChartBtn.addEventListener("click", loadExpenseChart);
+    generateZipTilesBtn.addEventListener("click", generateZipAlignedTiles);
+    incomeInput.addEventListener("input", debouncedEstimateRender);
+    incomeInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            renderPersonalEstimate();
+        }
+    });
+    zipCodeInput.addEventListener("input", debouncedEstimateRender);
+    zipCodeInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            renderPersonalEstimate();
+            generateZipAlignedTiles();
+        }
+    });
+    expenseYearInput.addEventListener("input", debouncedChartReload);
+    expenseYearInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && selectedGovernment) {
+            loadExpenseChart();
+        }
+    });
     searchQueryInput.addEventListener("input", () => {
         if (searchQueryInput.value.trim().length >= 2) {
             debouncedSearch();
@@ -333,6 +1246,10 @@
         }
     });
 
+    normalizeInitialFormValues();
+    resetIncomeTaxToggle();
+    resetPersonalEstimate("Load expense chart to generate your estimated personal category breakdown.");
+    renderSelectedGovernment(null);
     fetchHealth();
 </script>
 </body>
