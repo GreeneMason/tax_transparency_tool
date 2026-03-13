@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GovLens WA MVP</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background: #111317;
+            color: #e9e9ea;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 1.8rem;
+        }
+
+        .muted {
+            color: #b4b7bd;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: #191c22;
+            border: 1px solid #2a2e37;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .search-row {
+            display: grid;
+            grid-template-columns: 1fr 140px;
+            gap: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .search-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        label {
+            font-weight: 600;
+        }
+
+        input,
+        button {
+            border: 1px solid #3b404c;
+            border-radius: 8px;
+            background: #101218;
+            color: #f2f2f3;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+        }
+
+        input:focus,
+        button:focus {
+            outline: 2px solid #5b9cff;
+            outline-offset: 1px;
+        }
+
+        button {
+            cursor: pointer;
+            background: #345cff;
+            border-color: #345cff;
+            font-weight: 600;
+        }
+
+        .status {
+            font-weight: 600;
+        }
+
+        .status.up {
+            color: #3cd68a;
+        }
+
+        .status.down {
+            color: #ff7676;
+        }
+
+        .error {
+            color: #ff9b9b;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px 16px;
+        }
+
+        @media (max-width: 640px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .profile-key {
+            color: #aeb5c8;
+            font-size: 0.85rem;
+            margin-bottom: 2px;
+        }
+
+        .profile-value {
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+            font-size: 0.92rem;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid #2d3340;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            color: #cfd6e8;
+        }
+
+        .right {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .small-btn {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>GovLens: Washington Government Lookup</h1>
+    <div class="muted">Pivoted UI: discover one government at a time. APIs are unchanged and still available for other clients.</div>
+
+    <div class="card">
+        API Health: <span id="healthStatus" class="status">Checking...</span>
+    </div>
+
+    <div class="card">
+        <div class="field">
+            <label for="searchQuery">Search Washington Governments</label>
+            <div class="search-row">
+                <input id="searchQuery" type="text" placeholder="Try Seattle, King, Spokane, etc." autocomplete="off" />
+                <button id="searchBtn">Search</button>
+            </div>
+        </div>
+        <div id="errorText" class="error"></div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0;">Selected Government</h3>
+        <div id="selectedPlaceholder" class="muted">Select a government from the search results below.</div>
+        <div id="selectedProfile" class="profile-grid" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+        <h3 style="margin-top: 0;">Search Results</h3>
+        <table>
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>County</th>
+                <th>Type</th>
+                <th class="right">Population</th>
+                <th>Unit ID</th>
+                <th>Action</th>
+            </tr>
+            </thead>
+            <tbody id="resultsBody">
+            <tr>
+                <td colspan="6" class="muted">Run a search to view matching governments.</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const healthStatus = document.getElementById("healthStatus");
+    const searchQueryInput = document.getElementById("searchQuery");
+    const searchBtn = document.getElementById("searchBtn");
+    const errorText = document.getElementById("errorText");
+    const resultsBody = document.getElementById("resultsBody");
+    const selectedPlaceholder = document.getElementById("selectedPlaceholder");
+    const selectedProfile = document.getElementById("selectedProfile");
+
+    let latestResults = [];
+
+    function formatNumber(value) {
+        if (value === null || value === undefined) {
+            return "-";
+        }
+        return Number(value).toLocaleString();
+    }
+
+    function debounce(fn, wait = 250) {
+        let timer;
+        return (...args) => {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn(...args), wait);
+        };
+    }
+
+    async function fetchHealth() {
+        try {
+            const response = await fetch("/health");
+            const data = await response.json();
+            const isUp = response.ok && data.status === "UP";
+            healthStatus.textContent = `${data.status} (DB: ${data.database})`;
+            healthStatus.className = `status ${isUp ? "up" : "down"}`;
+        } catch (error) {
+            healthStatus.textContent = "DOWN";
+            healthStatus.className = "status down";
+        }
+    }
+
+    async function searchGovernments(query) {
+        const response = await fetch(`/api/v1/governments?query=${encodeURIComponent(query)}&limit=25`);
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.error || "Search failed.");
+        }
+        return response.json();
+    }
+
+    function renderSelectedGovernment(gov) {
+        if (!gov) {
+            selectedPlaceholder.style.display = "block";
+            selectedProfile.style.display = "none";
+            selectedProfile.innerHTML = "";
+            return;
+        }
+
+        selectedPlaceholder.style.display = "none";
+        selectedProfile.style.display = "grid";
+        selectedProfile.innerHTML = `
+            <div><div class="profile-key">Name</div><div class="profile-value">${gov.unitName || "-"}</div></div>
+            <div><div class="profile-key">Unit ID</div><div class="profile-value">${gov.unitId || "-"}</div></div>
+            <div><div class="profile-key">County</div><div class="profile-value">${gov.countyName || "-"}</div></div>
+            <div><div class="profile-key">Government Type</div><div class="profile-value">${gov.govTypeDescription || "-"}</div></div>
+            <div><div class="profile-key">State</div><div class="profile-value">${gov.stateName || "-"} (${gov.stateAbbrev || "-"})</div></div>
+            <div><div class="profile-key">Population</div><div class="profile-value">${formatNumber(gov.population)}</div></div>
+        `;
+    }
+
+    function renderResults(results) {
+        resultsBody.innerHTML = "";
+
+        if (!results.length) {
+            const row = document.createElement("tr");
+            row.innerHTML = `<td colspan="6" class="muted">No matching governments found.</td>`;
+            resultsBody.appendChild(row);
+            return;
+        }
+
+        results.forEach((gov, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${gov.unitName || "-"}</td>
+                <td>${gov.countyName || "-"}</td>
+                <td>${gov.govTypeDescription || "-"}</td>
+                <td class="right">${formatNumber(gov.population)}</td>
+                <td>${gov.unitId || "-"}</td>
+                <td><button class="small-btn" data-index="${index}">View</button></td>
+            `;
+            resultsBody.appendChild(row);
+        });
+
+        resultsBody.querySelectorAll("button[data-index]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const gov = latestResults[Number(button.dataset.index)];
+                renderSelectedGovernment(gov);
+            });
+        });
+    }
+
+    async function runSearch() {
+        const query = searchQueryInput.value.trim();
+        if (query.length < 2) {
+            errorText.textContent = "Enter at least 2 characters to search.";
+            return;
+        }
+
+        errorText.textContent = "";
+        try {
+            latestResults = await searchGovernments(query);
+            renderResults(latestResults);
+        } catch (error) {
+            errorText.textContent = error.message || "Search failed.";
+            renderResults([]);
+        }
+    }
+
+    const debouncedSearch = debounce(runSearch, 300);
+
+    searchBtn.addEventListener("click", runSearch);
+    searchQueryInput.addEventListener("input", () => {
+        if (searchQueryInput.value.trim().length >= 2) {
+            debouncedSearch();
+        }
+    });
+    searchQueryInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            runSearch();
+        }
+    });
+
+    fetchHealth();
+</script>
+</body>
+</html>
