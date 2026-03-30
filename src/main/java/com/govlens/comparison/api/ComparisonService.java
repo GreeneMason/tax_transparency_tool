@@ -1,5 +1,7 @@
 package com.govlens.comparison.api;
 
+/** Service-layer orchestration for comparison API requests. */
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,11 +24,11 @@ public class ComparisonService {
             throw new IllegalArgumentException("leftUnitId and rightUnitId must be different.");
         }
 
-        GovernmentSummary leftGovernment = repository.findWashingtonGovernment(left)
-                .orElseThrow(() -> new IllegalArgumentException("leftUnitId not found in Washington dataset."));
+        GovernmentSummary leftGovernment = repository.findGovernment(left)
+            .orElseThrow(() -> new IllegalArgumentException("leftUnitId not found in dataset."));
 
-        GovernmentSummary rightGovernment = repository.findWashingtonGovernment(right)
-                .orElseThrow(() -> new IllegalArgumentException("rightUnitId not found in Washington dataset."));
+        GovernmentSummary rightGovernment = repository.findGovernment(right)
+            .orElseThrow(() -> new IllegalArgumentException("rightUnitId not found in dataset."));
 
         List<ComparisonItem> items = repository.compareByItemCode(left, right, normalizedYear);
 

@@ -1,5 +1,7 @@
 package com.govlens.comparison.api;
 
+/** Data-access logic for government-to-government comparison queries. */
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -15,7 +17,7 @@ public class ComparisonRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public Optional<GovernmentSummary> findWashingtonGovernment(String unitId) {
+    public Optional<GovernmentSummary> findGovernment(String unitId) {
         String sql = """
                 SELECT
                     g.unit_id,
@@ -26,7 +28,6 @@ public class ComparisonRepository {
                 FROM govlens.dim_government_unit g
                 JOIN govlens.dim_gov_type gt ON gt.gov_type_code = g.gov_type_code
                 WHERE g.unit_id = ?
-                  AND g.state_fips = '53'
                 """;
 
         List<GovernmentSummary> rows = jdbcTemplate.query(

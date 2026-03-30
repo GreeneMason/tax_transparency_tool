@@ -1,4 +1,4 @@
-# GovLens PostgreSQL Setup (Washington MVP)
+# GovLens PostgreSQL Setup (MVP)
 
 ## 1) Apply schema
 
@@ -10,11 +10,14 @@ Then apply ZIP lookup schema additions:
 
 `psql -d <database_name> -f db/migration/V2__zip_lookup_schema.sql`
 
-## 2) Load Washington CSV into staging
+## 2) Load finance CSV into staging
 
 Generate the CSV first (if needed):
 
 `C:/Users/Smokable/Documents/GitHub/tax_transparency_tool/.venv/Scripts/python.exe scripts/parse_finestdat.py`
+
+This generates `data/output/finestdat_2023_us_enriched.csv` by default (all states).
+Optional: use `--state-fips 53` for Washington-only output.
 
 Then run the `\copy` command shown in `db/load_wa_finance.sql` to import:
 
@@ -24,11 +27,11 @@ Inside psql, run:
 
 `TRUNCATE TABLE govlens.stg_finance_unit_item;`
 
-Then execute the `\copy` block from `db/load_wa_finance.sql`.
+Then execute the `\copy` block from `db/load_finance.sql`.
 
 ## 3) Promote staging data to dimensions/facts
 
-`psql -d <database_name> -f db/load_wa_finance.sql`
+`psql -d <database_name> -f db/load_finance.sql`
 
 ## 4) Query the enriched view
 
@@ -41,11 +44,13 @@ Then execute the `\copy` block from `db/load_wa_finance.sql`.
 ## 6) Build ZIP to unit lookup from HUD crosswalk
 
 1. Download the HUD-USPS ZIP-COUNTY crosswalk CSV (or ZIP containing CSV).
-2. Build Washington ZIP-to-unit rows:
+2. Build national ZIP-to-unit rows (all states):
 
 `C:/Users/Smokable/Documents/GitHub/tax_transparency_tool/.venv/Scripts/python.exe scripts/build_zip_unit_lookup.py --hud-zip-county <path_to_hud_zip_county_file>`
 
-This generates `data/output/wa_zip_to_unit_lookup.csv`.
+This generates `data/output/us_zip_to_unit_lookup.csv`.
+
+Optional: build a single state by passing `--state-fips` (example: `--state-fips 53`).
 
 ## 7) Load ZIP lookup into PostgreSQL
 
@@ -57,4 +62,4 @@ Then execute the `\copy` block in `db/load_zip_lookup.sql`, then:
 
 `psql -d <database_name> -f db/load_zip_lookup.sql`
 
-After this, `/api/v1/governments/by-zip?zip=98101` returns crosswalk-backed governments.
+After this, `/api/v1/governments/by-zip?zip=98101` returns crosswalk-backed governments. You can optionally filter by state with `&state=WA` or `&state=53`.

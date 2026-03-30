@@ -1,3 +1,5 @@
+"""Builds ZIP-to-government-unit lookup tables used by the API ZIP search path."""
+
 from __future__ import annotations
 
 import argparse
@@ -55,7 +57,7 @@ def parse_pid_line(line: str) -> dict[str, str]:
     }
 
 
-def load_pid_units_by_county(pid_path: Path, state_fips_filter: str) -> dict[str, list[dict[str, str]]]:
+def load_pid_units_by_county(pid_path: Path, state_fips_filter: str | None) -> dict[str, list[dict[str, str]]]:
     county_to_units: dict[str, list[dict[str, str]]] = {}
     with pid_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
@@ -67,7 +69,7 @@ def load_pid_units_by_county(pid_path: Path, state_fips_filter: str) -> dict[str
             state_fips = unit_id[0:2]
             county_fips = unit_id[3:6]
 
-            if state_fips != state_fips_filter:
+            if state_fips_filter and state_fips != state_fips_filter:
                 continue
 
             county_full = f"{state_fips}{county_fips}"
@@ -119,7 +121,7 @@ def pick_column(fieldnames: list[str], candidates: list[str]) -> str:
 
 def parse_hud_zip_county(
     hud_path: Path,
-    state_fips_filter: str,
+    state_fips_filter: str | None,
 ) -> tuple[dict[tuple[str, str], float], str]:
     zip_county_ratios: dict[tuple[str, str], float] = {}
     source_name = hud_path.name
@@ -141,7 +143,7 @@ def parse_hud_zip_county(
             if not zip_code or not county_fips_full:
                 continue
 
-            if county_fips_full[0:2] != state_fips_filter:
+            if state_fips_filter and county_fips_full[0:2] != state_fips_filter:
                 continue
 
             ratio = 1.0
@@ -213,7 +215,6 @@ def parse_hud_zip_county(
 def build_zip_unit_rows(
     zip_county_ratios: dict[tuple[str, str], float],
     county_to_units: dict[str, list[dict[str, str]]],
-    state_fips_filter: str,
     source_name: str,
 ) -> list[dict[str, str]]:
     by_key: dict[tuple[str, str], dict[str, str]] = {}
@@ -228,7 +229,7 @@ def build_zip_unit_rows(
             key = (zip_code, unit_id)
             record = {
                 "zip_code": zip_code,
-                "state_fips": state_fips_filter,
+                "state_fips": county_fips_full[0:2],
                 "county_fips": county_fips_full[2:5],
                 "county_fips_full": county_fips_full,
                 "unit_id": unit_id,
@@ -267,7 +268,7 @@ def write_rows(rows: list[dict[str, str]], output_path: Path) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Build ZIP-to-unit lookup CSV from HUD ZIP-COUNTY crosswalk and Fin_PID_2023."
+        description="Build ZIP-to-unit lookup CSV from HUD ZIP-COUNTY crosswalk and Fin_PID_2023 for all states or a single state."
     )
     parser.add_argument(
         "--hud-zip-county",
@@ -281,12 +282,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--state-fips",
-        default="53",
-        help="2-digit state FIPS code filter (default: 53 for Washington).",
+        default="",
+        help="Optional 2-digit state FIPS code filter (for example: 53). Leave empty to include all states.",
     )
     parser.add_argument(
         "--output",
-        default="data/output/wa_zip_to_unit_lookup.csv",
+        default="data/output/us_zip_to_unit_lookup.csv",
         help="Output CSV path for db/load_zip_lookup.sql.",
     )
     return parser
@@ -300,8 +301,10 @@ def main() -> None:
     pid_path = Path(args.pid)
     output_path = Path(args.output)
     state_fips_filter = args.state_fips.strip()
+    if state_fips_filter == "":
+        state_fips_filter = None
 
-    if len(state_fips_filter) != 2 or not state_fips_filter.isdigit():
+    if state_fips_filter and (len(state_fips_filter) != 2 or not state_fips_filter.isdigit()):
         raise ValueError("--state-fips must be a 2-digit numeric FIPS code.")
 
     if not hud_path.exists():
@@ -311,13 +314,16 @@ def main() -> None:
 
     county_to_units = load_pid_units_by_county(pid_path, state_fips_filter)
     zip_county_ratios, source_name = parse_hud_zip_county(hud_path, state_fips_filter)
-    rows = build_zip_unit_rows(zip_county_ratios, county_to_units, state_fips_filter, source_name)
+    rows = build_zip_unit_rows(zip_county_ratios, county_to_units, source_name)
     write_rows(rows, output_path)
 
     zip_count = len({row["zip_code"] for row in rows})
     unit_count = len({row["unit_id"] for row in rows})
 
-    print(f"Built {len(rows):,} ZIP→unit rows for state {state_fips_filter}.")
+    if state_fips_filter:
+        print(f"Built {len(rows):,} ZIP→unit rows for state {state_fips_filter}.")
+    else:
+        print(f"Built {len(rows):,} ZIP→unit rows across all states.")
     print(f"Distinct ZIPs: {zip_count:,} | Distinct units: {unit_count:,}")
     print(f"Output: {output_path}")
     print("Note: ZIP-COUNTY gives county-level linkage; place-level precision needs an additional ZIP→place/ZCTA-to-place dataset.")

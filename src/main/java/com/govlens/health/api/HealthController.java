@@ -1,5 +1,7 @@
 package com.govlens.health.api;
 
+/** Health-check endpoint for API and database availability. */
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

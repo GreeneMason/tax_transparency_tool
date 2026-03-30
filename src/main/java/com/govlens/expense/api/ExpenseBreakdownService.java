@@ -1,5 +1,7 @@
 package com.govlens.expense.api;
 
+/** Service that builds categorized expense views from repository data. */
+
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -21,8 +23,8 @@ public class ExpenseBreakdownService {
         String normalizedUnitId = normalizeUnitId(unitId);
         int normalizedYear = normalizeYear(year);
 
-        ExpenseGovernmentSummary government = repository.findWashingtonGovernment(normalizedUnitId)
-                .orElseThrow(() -> new NoSuchElementException("Government not found in Washington dataset."));
+        ExpenseGovernmentSummary government = repository.findGovernment(normalizedUnitId)
+            .orElseThrow(() -> new NoSuchElementException("Government not found in dataset."));
 
         List<ExpenseBreakdownRepository.CategoryTotal> totals = repository.findExpenseCategoryTotals(normalizedUnitId, normalizedYear);
         List<ExpenseBreakdownRepository.CategoryItemTotal> itemTotals = repository.findExpenseCategoryItemTotals(normalizedUnitId, normalizedYear);

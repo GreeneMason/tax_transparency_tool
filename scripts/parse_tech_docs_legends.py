@@ -1,3 +1,5 @@
+"""Extracts and normalizes finance legend/code tables from technical docs."""
+
 from __future__ import annotations
 
 import argparse

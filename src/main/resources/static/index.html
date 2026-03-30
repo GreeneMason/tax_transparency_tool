@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>GovLens WA MVP</title>
+    <title>GovLens MVP</title>
     <style>
         :root {
             color-scheme: light dark;
@@ -148,6 +148,7 @@
         }
 
         input,
+        select,
         button {
             border: 1px solid #3b404c;
             border-radius: 8px;
@@ -158,6 +159,7 @@
         }
 
         input:focus,
+        select:focus,
         button:focus {
             outline: 2px solid #5b9cff;
             outline-offset: 1px;
@@ -465,14 +467,14 @@
 <div class="nav">
     <div class="nav-inner">
         <div>
-            <div class="brand-title">GovLens: Washington Government Lookup</div>
-            <div class="brand-subtitle">Option 1 MVP estimate based on location + income</div>
+            <div class="brand-title">American Tax Transparency Tool</div>
+            <div class="brand-subtitle">State and Local</div>
         </div>
         <div class="field nav-search-field">
-            <label for="searchQuery">Search Washington Governments</label>
+            <label for="searchQuery">Search Governments</label>
             <div class="nav-search">
-                <input id="searchQuery" type="text" placeholder="Try Seattle, King, Spokane, etc." autocomplete="off" />
-                <button id="searchBtn">Search</button>
+                <input id="searchQuery" type="text" placeholder="Try Seattle, Miami, New York, etc." autocomplete="off" />
+                <button id="searchBtn" type="button">Search</button>
             </div>
         </div>
     </div>
@@ -485,12 +487,8 @@
             </div>
 
             <div class="pane-section">
-                <div id="errorText" class="error top-error"></div>
-            </div>
-
-            <div class="pane-section">
-                <h3 style="margin-top: 0;">ZIP + Income Inputs</h3>
-                <div class="muted" style="margin-bottom: 10px;">Use ZIP and income on the left, then choose a government tile or result.</div>
+                <h3 style="margin-top: 0;">Search by ZIP</h3>
+                <div class="muted" style="margin-bottom: 10px;">If the ZIP code area has an income tax input your annual household income for an estimate of your tax contribution.</div>
                 <div class="estimate-input-row">
                     <div class="field">
                         <label for="incomeInput">Annual Household Income ($)</label>
@@ -499,6 +497,10 @@
                     <div class="field">
                         <label for="zipCodeInput">ZIP Code</label>
                         <input id="zipCodeInput" type="text" inputmode="numeric" autocomplete="postal-code" pattern="[0-9]{5}" minlength="5" maxlength="5" placeholder="98101" />
+                    </div>
+                    <div class="field">
+                        <label for="stateFilterInput">State Filter (optional)</label>
+                        <input id="stateFilterInput" type="text" maxlength="2" placeholder="WA or 53" autocomplete="off" />
                     </div>
                 </div>
                 <div class="income-status-row">
@@ -618,6 +620,7 @@
     const incomeTaxStatusText = document.getElementById("incomeTaxStatusText");
     const incomeTaxModeBadge = document.getElementById("incomeTaxModeBadge");
     const zipCodeInput = document.getElementById("zipCodeInput");
+    const stateFilterInput = document.getElementById("stateFilterInput");
     const generateZipTilesBtn = document.getElementById("generateZipTilesBtn");
     const zipTilesStatus = document.getElementById("zipTilesStatus");
     const zipTilesGrid = document.getElementById("zipTilesGrid");
@@ -637,7 +640,7 @@
     const OPTION1_MIN_FACTOR = 0.25;
     const OPTION1_MAX_FACTOR = 4;
 
-    const configuredApiBase = window.localStorage.getItem("govlensApiBase") || "";
+    const configuredApiBase = (window.localStorage.getItem("govlensApiBase") || "").trim();
     const fallbackApiBase = "http://localhost:8081";
 
     const pieColors = [
@@ -689,6 +692,25 @@
         return (rawValue || "").trim();
     }
 
+    function normalizeStateFilter(rawValue) {
+        const normalized = (rawValue || "").trim().toUpperCase();
+        if (!normalized) {
+            return "";
+        }
+        if (!/^(?:\d{2}|[A-Z]{2})$/.test(normalized)) {
+            throw new Error("State filter must be a 2-letter abbreviation or 2-digit FIPS.");
+        }
+        return normalized;
+    }
+
+    function withOptionalState(path, stateFilter) {
+        if (!stateFilter) {
+            return path;
+        }
+        const separator = path.includes("?") ? "&" : "?";
+        return `${path}${separator}state=${encodeURIComponent(stateFilter)}`;
+    }
+
     function normalizeInitialFormValues() {
         const currentIncome = Number(incomeInput.value);
         const currentYear = Number(expenseYearInput.value);
@@ -725,18 +747,32 @@
 
     async function apiFetch(path, options) {
         const primaryUrl = `${configuredApiBase}${path}`;
+        const fallbackUrl = `${fallbackApiBase}${path}`;
+
+        if (configuredApiBase === "") {
+            const primaryResponse = await fetch(path, options);
+            if (primaryResponse.status !== 404) {
+                return primaryResponse;
+            }
+            return fetch(fallbackUrl, options);
+        }
 
         try {
             const primaryResponse = await fetch(primaryUrl, options);
-            if (configuredApiBase === "" && primaryResponse.status === 404) {
-                return fetch(`${fallbackApiBase}${path}`, options);
+            if (primaryResponse.ok || configuredApiBase === fallbackApiBase) {
+                return primaryResponse;
             }
+
+            if (primaryResponse.status >= 500 || primaryResponse.status === 404) {
+                return fetch(fallbackUrl, options);
+            }
+
             return primaryResponse;
         } catch (error) {
-            if (configuredApiBase !== "") {
+            if (configuredApiBase === fallbackApiBase) {
                 throw error;
             }
-            return fetch(`${fallbackApiBase}${path}`, options);
+            return fetch(fallbackUrl, options);
         }
     }
 
@@ -753,8 +789,9 @@
         }
     }
 
-    async function searchGovernments(query) {
-        const response = await apiFetch(`/api/v1/governments?query=${encodeURIComponent(query)}&limit=25`);
+    async function searchGovernments(query, stateFilter = "") {
+        const path = withOptionalState(`/api/v1/governments?query=${encodeURIComponent(query)}&limit=25`, stateFilter);
+        const response = await apiFetch(path);
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || "Search failed.");
@@ -762,8 +799,9 @@
         return response.json();
     }
 
-    async function fetchGovernmentsByZip(zipCode) {
-        const response = await apiFetch(`/api/v1/governments/by-zip?zip=${encodeURIComponent(zipCode)}&limit=100`);
+    async function fetchGovernmentsByZip(zipCode, stateFilter = "") {
+        const path = withOptionalState(`/api/v1/governments/by-zip?zip=${encodeURIComponent(zipCode)}&limit=100`, stateFilter);
+        const response = await apiFetch(path);
         if (!response.ok) {
             const data = await response.json().catch(() => ({}));
             throw new Error(data.error || "ZIP lookup failed.");
@@ -780,8 +818,9 @@
         return data;
     }
 
-    async function fetchIncomeTaxStatus(unitId, year) {
-        const response = await apiFetch(`/api/v1/governments/${encodeURIComponent(unitId)}/income-tax-status?year=${encodeURIComponent(year)}`);
+    async function fetchIncomeTaxStatus(unitId, year, stateFilter = "") {
+        const path = withOptionalState(`/api/v1/governments/${encodeURIComponent(unitId)}/income-tax-status?year=${encodeURIComponent(year)}`, stateFilter);
+        const response = await apiFetch(path);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
             throw new Error(data.error || "Unable to load income tax status.");
@@ -914,6 +953,16 @@
 
     async function generateZipAlignedTiles() {
         const zipCode = normalizeZipCode(zipCodeInput.value);
+        let stateFilter = "";
+
+        try {
+            stateFilter = normalizeStateFilter(stateFilterInput.value);
+        } catch (error) {
+            zipTilesStatus.textContent = error.message || "Invalid state filter.";
+            zipTilesGrid.innerHTML = "";
+            return;
+        }
+
         if (!/^\d{5}$/.test(zipCode)) {
             zipTilesStatus.textContent = "Enter a valid 5-digit ZIP code before generating tiles.";
             zipTilesGrid.innerHTML = "";
@@ -924,17 +973,17 @@
         zipTilesGrid.innerHTML = "";
 
         try {
-            const governmentsFromZip = await fetchGovernmentsByZip(zipCode);
+            const governmentsFromZip = await fetchGovernmentsByZip(zipCode, stateFilter);
             if (governmentsFromZip.length) {
                 renderZipGovernmentTiles(governmentsFromZip, zipCode, "HUD ZIP crosswalk");
                 return;
             }
 
-            const fallbackGovernments = await searchGovernments(zipCode);
+            const fallbackGovernments = await searchGovernments(zipCode, stateFilter);
             renderZipGovernmentTiles(fallbackGovernments, zipCode, "name/place fallback");
         } catch (error) {
             try {
-                const fallbackGovernments = await searchGovernments(zipCode);
+                const fallbackGovernments = await searchGovernments(zipCode, stateFilter);
                 renderZipGovernmentTiles(fallbackGovernments, zipCode, "name/place fallback");
                 errorText.textContent = "ZIP lookup table unavailable; showing fallback results.";
             } catch (fallbackError) {
@@ -1164,10 +1213,22 @@
         errorText.textContent = "";
         setIncomeTaxStatusLoading(year);
         try {
+            let stateFilter = "";
+            try {
+                stateFilter = normalizeStateFilter(stateFilterInput.value);
+            } catch (stateError) {
+                errorText.textContent = stateError.message || "Invalid state filter.";
+                return;
+            }
+
             const data = await fetchExpenseBreakdown(selectedGovernment.unitId, year);
 
             try {
-                const incomeTaxStatus = await fetchIncomeTaxStatus(selectedGovernment.unitId, year);
+                const incomeTaxStatus = await fetchIncomeTaxStatus(
+                    selectedGovernment.unitId,
+                    year,
+                    stateFilter || (selectedGovernment.stateAbbrev || "")
+                );
                 applyIncomeTaxStatus(incomeTaxStatus);
             } catch (statusError) {
                 hasIncomeTaxForSelection = null;
@@ -1193,9 +1254,17 @@
             return;
         }
 
+        let stateFilter = "";
+        try {
+            stateFilter = normalizeStateFilter(stateFilterInput.value);
+        } catch (stateError) {
+            errorText.textContent = stateError.message || "Invalid state filter.";
+            return;
+        }
+
         errorText.textContent = "";
         try {
-            latestResults = await searchGovernments(query);
+            latestResults = await searchGovernments(query, stateFilter);
             renderResults(latestResults);
         } catch (error) {
             errorText.textContent = error.message || "Search failed.";
@@ -1227,6 +1296,16 @@
         if (event.key === "Enter") {
             renderPersonalEstimate();
             generateZipAlignedTiles();
+        }
+    });
+    stateFilterInput.addEventListener("input", () => {
+        if (searchQueryInput.value.trim().length >= 2) {
+            debouncedSearch();
+        }
+    });
+    stateFilterInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            runSearch();
         }
     });
     expenseYearInput.addEventListener("input", debouncedChartReload);

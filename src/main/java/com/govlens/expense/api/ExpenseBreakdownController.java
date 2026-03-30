@@ -1,5 +1,7 @@
 package com.govlens.expense.api;
 
+/** REST endpoints for retrieving expense breakdowns for a government and year. */
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

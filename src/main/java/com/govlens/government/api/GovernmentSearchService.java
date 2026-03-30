@@ -1,5 +1,7 @@
 package com.govlens.government.api;
 
+/** Service-layer validation and orchestration for government search operations. */
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,41 +17,46 @@ public class GovernmentSearchService {
     private static final int MAX_LIMIT = 100;
     private static final int DEFAULT_YEAR = 2023;
     private static final Pattern ZIP_PATTERN = Pattern.compile("^\\d{5}$");
+    private static final Pattern STATE_PATTERN = Pattern.compile("^(?:\\d{2}|[A-Za-z]{2})$");
 
     private final GovernmentSearchRepository repository;
-    private final Map<Integer, Set<String>> incomeTaxUnitIdsByYear = new ConcurrentHashMap<>();
+    private final Map<String, Set<String>> incomeTaxUnitIdsByYearAndState = new ConcurrentHashMap<>();
 
     public GovernmentSearchService(GovernmentSearchRepository repository) {
         this.repository = repository;
     }
 
-    public List<GovernmentSearchResult> search(String query, Integer limit) {
+    public List<GovernmentSearchResult> search(String query, Integer limit, String state) {
         String normalizedQuery = query == null ? "" : query.trim();
         if (normalizedQuery.length() < 2) {
             throw new IllegalArgumentException("Query must be at least 2 characters.");
         }
 
+        String normalizedState = normalizeStateFilter(state);
         int resolvedLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
-        return repository.searchWashingtonGovernments(normalizedQuery, resolvedLimit);
+        return repository.searchGovernments(normalizedQuery, resolvedLimit, normalizedState);
     }
 
-    public List<GovernmentSearchResult> searchByZip(String zip, Integer limit) {
+    public List<GovernmentSearchResult> searchByZip(String zip, Integer limit, String state) {
         String normalizedZip = zip == null ? "" : zip.trim();
         if (!ZIP_PATTERN.matcher(normalizedZip).matches()) {
             throw new IllegalArgumentException("zip must be a valid 5-digit ZIP code.");
         }
 
+        String normalizedState = normalizeStateFilter(state);
         int resolvedLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
-        return repository.findWashingtonGovernmentsByZip(normalizedZip, resolvedLimit);
+        return repository.findGovernmentsByZip(normalizedZip, resolvedLimit, normalizedState);
     }
 
-    public IncomeTaxStatusResponse getIncomeTaxStatus(String unitId, Integer year) {
+    public IncomeTaxStatusResponse getIncomeTaxStatus(String unitId, Integer year, String state) {
         String normalizedUnitId = normalizeUnitId(unitId);
         int normalizedYear = normalizeYear(year);
+        String normalizedState = normalizeStateFilter(state);
+        String cacheKey = normalizedYear + "|" + (normalizedState == null ? "ALL" : normalizedState);
 
-        Set<String> incomeTaxUnits = incomeTaxUnitIdsByYear.computeIfAbsent(
-                normalizedYear,
-            yearKey -> repository.findWashingtonIncomeTaxUnitIdsForYear(yearKey)
+        Set<String> incomeTaxUnits = incomeTaxUnitIdsByYearAndState.computeIfAbsent(
+                cacheKey,
+                key -> repository.findIncomeTaxUnitIdsForYear(normalizedYear, normalizedState)
         );
 
         boolean hasIncomeTax = incomeTaxUnits.contains(normalizedUnitId);
@@ -70,5 +77,16 @@ public class GovernmentSearchService {
             throw new IllegalArgumentException("year must be between 1900 and 2100.");
         }
         return resolvedYear;
+    }
+
+    private static String normalizeStateFilter(String state) {
+        String normalized = state == null ? "" : state.trim();
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        if (!STATE_PATTERN.matcher(normalized).matches()) {
+            throw new IllegalArgumentException("state must be a 2-digit FIPS or 2-letter abbreviation.");
+        }
+        return normalized.toUpperCase();
     }
 }

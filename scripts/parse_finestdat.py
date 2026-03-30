@@ -1,3 +1,5 @@
+"""Parses fixed-width Census finance data into structured CSV outputs."""
+
 from __future__ import annotations
 
 import argparse
@@ -208,13 +210,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--output",
-        default="data/output/finestdat_2023_wa_enriched.csv",
+        default="data/output/finestdat_2023_us_enriched.csv",
         help="Output CSV path.",
     )
     parser.add_argument(
         "--state-fips",
-        default="53",
-        help="Filter output to a specific 2-digit state FIPS code. Use empty string for all states.",
+        default="",
+        help="Optional 2-digit state FIPS filter. Leave empty for all states.",
     )
     parser.add_argument(
         "--skip-pid",

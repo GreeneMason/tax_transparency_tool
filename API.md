@@ -1,6 +1,6 @@
-# GovLens API (Washington MVP)
+# GovLens API (MVP)
 
-This document describes the current backend endpoints for the Washington-only MVP.
+This document describes the current backend endpoints for the MVP dataset.
 
 ## Base URL
 
@@ -23,6 +23,18 @@ Environment variables (optional, defaults shown):
 - `GOVLENS_DB_USER` = `postgres`
 - `GOVLENS_DB_PASSWORD` = `postgres`
 - `PORT` = `8080`
+- `GOVLENS_ENV` = `dev`
+- `GOVLENS_CORS_ALLOWED_ORIGINS` = `http://localhost:8081,http://127.0.0.1:8081,http://localhost:3000,http://127.0.0.1:3000`
+- `GOVLENS_RATE_LIMIT_ENABLED` = `true`
+- `GOVLENS_RATE_LIMIT_REQUESTS_PER_WINDOW` = `120`
+- `GOVLENS_RATE_LIMIT_WINDOW_SECONDS` = `60`
+- `GOVLENS_RATE_LIMIT_MAX_TRACKED_CLIENTS` = `10000`
+- `GOVLENS_FLYWAY_ENABLED` = `false`
+
+Production notes:
+
+- When `GOVLENS_ENV=prod`, wildcard CORS origins are blocked at startup.
+- API routes under `/api/**` are rate-limited per client IP and return HTTP `429` when exceeded.
 
 ## Endpoint 0: Health Check
 
@@ -66,6 +78,7 @@ curl "http://localhost:8080/health"
 - Query params:
   - `query` (required, minimum 2 chars)
   - `limit` (optional, default 25, max 100)
+  - `state` (optional, 2-digit FIPS or 2-letter abbreviation; e.g. `53` or `WA`)
 
 ### Example
 
@@ -117,6 +130,7 @@ curl "http://localhost:8080/api/v1/governments?query=Sea&limit=3"
 - Query params:
   - `zip` (required, 5 digits)
   - `limit` (optional, default 25, max 100)
+  - `state` (optional, 2-digit FIPS or 2-letter abbreviation; e.g. `53` or `WA`)
 
 ### Example
 
@@ -159,6 +173,7 @@ curl "http://localhost:8080/api/v1/governments/by-zip?zip=98101&limit=5"
 - Path: `/api/v1/governments/{unitId}/income-tax-status`
 - Query params:
   - `year` (optional, default 2023)
+  - `state` (optional, 2-digit FIPS or 2-letter abbreviation; narrows T09 lookup scope)
 
 ### Example
 

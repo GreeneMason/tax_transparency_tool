@@ -1,5 +1,7 @@
 package com.govlens.expense.api;
 
+/** Data-access queries for category and item-level government expenses. */
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -38,7 +40,7 @@ public class ExpenseBreakdownRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public Optional<ExpenseGovernmentSummary> findWashingtonGovernment(String unitId) {
+    public Optional<ExpenseGovernmentSummary> findGovernment(String unitId) {
         String sql = """
                 SELECT
                     g.unit_id,
@@ -49,7 +51,6 @@ public class ExpenseBreakdownRepository {
                 FROM govlens.dim_government_unit g
                 JOIN govlens.dim_gov_type gt ON gt.gov_type_code = g.gov_type_code
                 WHERE g.unit_id = ?
-                  AND g.state_fips = '53'
                 """;
 
         List<ExpenseGovernmentSummary> rows = jdbcTemplate.query(

@@ -1,5 +1,7 @@
 package com.govlens.health.api;
 
+/** Service that probes database connectivity for health reporting. */
+
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
