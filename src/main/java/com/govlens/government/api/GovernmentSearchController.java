@@ -2,6 +2,7 @@ package com.govlens.government.api;
 
 /** REST endpoints for searching governments and checking income-tax status. */
 
+import com.govlens.common.PaginatedResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,22 +28,40 @@ public class GovernmentSearchController {
     }
 
     /**
-     * Searches government units by free-text query.
+     * Searches government units by free-text query with pagination support.
      *
      * @param query search text (minimum length validation handled in service)
-     * @param limit optional max number of results
+     * @param limit optional max number of results (default 25, max 100)
+     * @param offset optional pagination offset (default 0)
      * @param state optional state filter (2-letter abbreviation or 2-digit FIPS)
-     * @return matching government rows, or a 400 error payload when input is invalid
+     * @return paginated government rows, or a 400 error payload when input is invalid
      */
     @GetMapping
     public ResponseEntity<?> search(
             @RequestParam("query") String query,
-            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "limit", defaultValue = "25") int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "state", required = false) String state
     ) {
         try {
-            List<GovernmentSearchResult> results = service.search(query, limit, state);
-            return ResponseEntity.ok(results);
+            // Enforce reasonable limits
+            limit = Math.min(Math.max(limit, 1), 100);
+            offset = Math.max(offset, 0);
+
+            List<GovernmentSearchResult> results = service.search(query, limit + 1, offset, state);
+            
+            // Check if there are more results
+            boolean hasMore = results.size() > limit;
+            if (hasMore) {
+                results = results.subList(0, limit);
+            }
+
+            long totalCount = service.countGovernments(query, state);
+            PaginatedResponse<GovernmentSearchResult> response = new PaginatedResponse<>(
+                    results, limit, offset, totalCount
+            );
+
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", ex.getMessage()));
@@ -50,22 +69,38 @@ public class GovernmentSearchController {
     }
 
     /**
-     * Looks up government units by ZIP code.
+     * Looks up government units by ZIP code with pagination support.
      *
      * @param zip ZIP code to resolve
-     * @param limit optional max number of results
+     * @param limit optional max number of results (default 25, max 100)
+     * @param offset optional pagination offset (default 0)
      * @param state optional state filter (2-letter abbreviation or 2-digit FIPS)
-     * @return matching government rows, or a 400 error payload when input is invalid
+     * @return paginated government rows, or a 400 error payload when input is invalid
      */
     @GetMapping("/by-zip")
     public ResponseEntity<?> byZip(
             @RequestParam("zip") String zip,
-            @RequestParam(value = "limit", required = false) Integer limit,
+            @RequestParam(value = "limit", defaultValue = "25") int limit,
+            @RequestParam(value = "offset", defaultValue = "0") int offset,
             @RequestParam(value = "state", required = false) String state
     ) {
         try {
-            List<GovernmentSearchResult> results = service.searchByZip(zip, limit, state);
-            return ResponseEntity.ok(results);
+            limit = Math.min(Math.max(limit, 1), 100);
+            offset = Math.max(offset, 0);
+
+            List<GovernmentSearchResult> results = service.searchByZip(zip, limit + 1, offset, state);
+
+            boolean hasMore = results.size() > limit;
+            if (hasMore) {
+                results = results.subList(0, limit);
+            }
+
+            long totalCount = service.countGovernmentsByZip(zip, state);
+            PaginatedResponse<GovernmentSearchResult> response = new PaginatedResponse<>(
+                    results, limit, offset, totalCount
+            );
+
+            return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", ex.getMessage()));

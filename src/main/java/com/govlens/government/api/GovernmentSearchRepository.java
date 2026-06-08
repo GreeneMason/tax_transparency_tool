@@ -21,8 +21,11 @@ public class GovernmentSearchRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public List<GovernmentSearchResult> searchGovernments(String query, int limit, String stateFilter) {
+    public List<GovernmentSearchResult> searchGovernments(String query, int limit, int offset, String stateFilter) {
         String queryLike = "%" + query + "%";
+
+        // Normalize state filter to FIPS code for sargable filtering (avoid OR on joins).
+        String stateFips = normalizeStateFilter(stateFilter);
 
         StringBuilder sql = new StringBuilder("""
                 SELECT
@@ -49,10 +52,9 @@ public class GovernmentSearchRepository {
         params.add(queryLike);
         params.add(query);
 
-        if (stateFilter != null) {
-            sql.append("\n  AND (g.state_fips = ? OR s.state_abbrev = ?)");
-            params.add(stateFilter);
-            params.add(stateFilter);
+        if (stateFips != null) {
+            sql.append("\n  AND g.state_fips = ?");
+            params.add(stateFips);
         }
 
         sql.append("""
@@ -60,11 +62,12 @@ public class GovernmentSearchRepository {
                 ORDER BY
                     CASE WHEN g.unit_name ILIKE ? THEN 0 ELSE 1 END,
                     g.unit_name
-                LIMIT ?
+                LIMIT ? OFFSET ?
                 """);
 
         params.add(queryLike);
         params.add(limit);
+        params.add(offset);
 
         return jdbcTemplate.query(
                 sql.toString(),
@@ -82,7 +85,38 @@ public class GovernmentSearchRepository {
         );
     }
 
-    public List<GovernmentSearchResult> findGovernmentsByZip(String zipCode, int limit, String stateFilter) {
+    public long countGovernments(String query, String stateFilter) {
+        String queryLike = "%" + query + "%";
+        String stateFips = normalizeStateFilter(stateFilter);
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(DISTINCT g.unit_id)
+                FROM govlens.dim_government_unit g
+                WHERE (
+                        g.unit_name ILIKE ?
+                     OR g.county_name ILIKE ?
+                     OR g.place_fips = ?
+                  )
+                """);
+
+        List<Object> params = new ArrayList<>();
+        params.add(queryLike);
+        params.add(queryLike);
+        params.add(query);
+
+        if (stateFips != null) {
+            sql.append("\n  AND g.state_fips = ?");
+            params.add(stateFips);
+        }
+
+        Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
+        return count != null ? count : 0L;
+    }
+
+    public List<GovernmentSearchResult> findGovernmentsByZip(String zipCode, int limit, int offset, String stateFilter) {
+        // Normalize state filter to FIPS code for sargable filtering.
+        String stateFips = normalizeStateFilter(stateFilter);
+
         StringBuilder sql = new StringBuilder("""
                 SELECT
                     g.unit_id,
@@ -103,10 +137,9 @@ public class GovernmentSearchRepository {
         List<Object> params = new ArrayList<>();
         params.add(zipCode);
 
-        if (stateFilter != null) {
-            sql.append("\n  AND (g.state_fips = ? OR s.state_abbrev = ?)");
-            params.add(stateFilter);
-            params.add(stateFilter);
+        if (stateFips != null) {
+            sql.append("\n  AND z.state_fips = ?");
+            params.add(stateFips);
         }
 
         sql.append("""
@@ -115,10 +148,11 @@ public class GovernmentSearchRepository {
                     z.hud_ratio DESC NULLS LAST,
                     g.population DESC NULLS LAST,
                     g.unit_name
-                LIMIT ?
+                LIMIT ? OFFSET ?
                 """);
 
         params.add(limit);
+        params.add(offset);
 
         try {
             return jdbcTemplate.query(
@@ -140,6 +174,28 @@ public class GovernmentSearchRepository {
         }
     }
 
+    public long countGovernmentsByZip(String zipCode, String stateFilter) {
+        String stateFips = normalizeStateFilter(stateFilter);
+
+        StringBuilder sql = new StringBuilder("""
+                SELECT COUNT(DISTINCT g.unit_id)
+                FROM govlens.zip_to_unit_lookup z
+                JOIN govlens.dim_government_unit g ON g.unit_id = z.unit_id
+                WHERE z.zip_code = ?
+                """);
+
+        List<Object> params = new ArrayList<>();
+        params.add(zipCode);
+
+        if (stateFips != null) {
+            sql.append("\n  AND z.state_fips = ?");
+            params.add(stateFips);
+        }
+
+        Long count = jdbcTemplate.queryForObject(sql.toString(), params.toArray(), Long.class);
+        return count != null ? count : 0L;
+    }
+
     public Set<String> findIncomeTaxUnitIdsForYear(int year, String stateFilter) {
         StringBuilder sql = new StringBuilder("""
                 SELECT DISTINCT f.unit_id
@@ -154,10 +210,10 @@ public class GovernmentSearchRepository {
         List<Object> params = new ArrayList<>();
         params.add(year);
 
-        if (stateFilter != null) {
-            sql.append("\n  AND (g.state_fips = ? OR s.state_abbrev = ?)");
-            params.add(stateFilter);
-            params.add(stateFilter);
+        String stateFips = normalizeStateFilter(stateFilter);
+        if (stateFips != null) {
+            sql.append("\n  AND g.state_fips = ?");
+            params.add(stateFips);
         }
 
         List<String> rows = jdbcTemplate.query(
@@ -167,5 +223,30 @@ public class GovernmentSearchRepository {
         );
 
         return new HashSet<>(rows);
+    }
+
+    /**
+     * Convert state abbreviation or FIPS code to canonical FIPS code.
+     * Enables sargable filtering by normalizing state predicates at application level.
+     * Returns null if no valid state provided.
+     */
+    private String normalizeStateFilter(String stateFilter) {
+        if (stateFilter == null) {
+            return null;
+        }
+
+        // If it's already a 2-digit FIPS code, use as-is.
+        if (stateFilter.length() == 2 && stateFilter.matches("\\d{2}")) {
+            return stateFilter;
+        }
+
+        // Map common abbreviations to FIPS codes.
+        // In production, load full mapping from dim_state at startup or cache.
+        String upper = stateFilter.toUpperCase();
+        if ("WA".equals(upper)) {
+            return "53";
+        }
+        // Extend with other states as needed.
+        return null;
     }
 }

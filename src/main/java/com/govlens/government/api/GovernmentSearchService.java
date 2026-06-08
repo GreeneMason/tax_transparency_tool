@@ -26,26 +26,48 @@ public class GovernmentSearchService {
         this.repository = repository;
     }
 
-    public List<GovernmentSearchResult> search(String query, Integer limit, String state) {
+    public List<GovernmentSearchResult> search(String query, int limit, int offset, String state) {
         String normalizedQuery = query == null ? "" : query.trim();
         if (normalizedQuery.length() < 2) {
             throw new IllegalArgumentException("Query must be at least 2 characters.");
         }
 
         String normalizedState = normalizeStateFilter(state);
-        int resolvedLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
-        return repository.searchGovernments(normalizedQuery, resolvedLimit, normalizedState);
+        int resolvedOffset = Math.max(offset, 0);
+        int resolvedLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+        return repository.searchGovernments(normalizedQuery, resolvedLimit, resolvedOffset, normalizedState);
     }
 
-    public List<GovernmentSearchResult> searchByZip(String zip, Integer limit, String state) {
+    public long countGovernments(String query, String state) {
+        String normalizedQuery = query == null ? "" : query.trim();
+        if (normalizedQuery.length() < 2) {
+            throw new IllegalArgumentException("Query must be at least 2 characters.");
+        }
+
+        String normalizedState = normalizeStateFilter(state);
+        return repository.countGovernments(normalizedQuery, normalizedState);
+    }
+
+    public List<GovernmentSearchResult> searchByZip(String zip, int limit, int offset, String state) {
         String normalizedZip = zip == null ? "" : zip.trim();
         if (!ZIP_PATTERN.matcher(normalizedZip).matches()) {
             throw new IllegalArgumentException("zip must be a valid 5-digit ZIP code.");
         }
 
         String normalizedState = normalizeStateFilter(state);
-        int resolvedLimit = (limit == null || limit < 1) ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT);
-        return repository.findGovernmentsByZip(normalizedZip, resolvedLimit, normalizedState);
+        int resolvedOffset = Math.max(offset, 0);
+        int resolvedLimit = Math.min(Math.max(limit, 1), MAX_LIMIT);
+        return repository.findGovernmentsByZip(normalizedZip, resolvedLimit, resolvedOffset, normalizedState);
+    }
+
+    public long countGovernmentsByZip(String zip, String state) {
+        String normalizedZip = zip == null ? "" : zip.trim();
+        if (!ZIP_PATTERN.matcher(normalizedZip).matches()) {
+            throw new IllegalArgumentException("zip must be a valid 5-digit ZIP code.");
+        }
+
+        String normalizedState = normalizeStateFilter(state);
+        return repository.countGovernmentsByZip(normalizedZip, normalizedState);
     }
 
     public IncomeTaxStatusResponse getIncomeTaxStatus(String unitId, Integer year, String state) {

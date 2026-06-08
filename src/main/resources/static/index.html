@@ -52,6 +52,33 @@
             min-width: 360px;
         }
 
+        .nav-contact {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            padding-left: 24px;
+        }
+
+        .contact-btn {
+            display: inline-block;
+            padding: 8px 18px;
+            background: transparent;
+            color: #b4b7bd;
+            border: 1px solid #3a3f4b;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+
+        .contact-btn:hover {
+            color: #e9e9ea;
+            border-color: #6c8ebf;
+            background: #1e2530;
+        }
+
         @media (max-width: 900px) {
             .nav-inner {
                 flex-direction: column;
@@ -60,6 +87,11 @@
 
             .nav-search-field {
                 min-width: 0;
+            }
+
+            .nav-contact {
+                padding-left: 0;
+                margin-left: 0;
             }
         }
 
@@ -477,6 +509,9 @@
                 <button id="searchBtn" type="button">Search</button>
             </div>
         </div>
+        <div class="nav-contact">
+            <a href="https://masongreene.dev" target="_blank" rel="noopener noreferrer" class="contact-btn">Contact Me</a>
+        </div>
     </div>
 </div>
 <div class="container">
@@ -484,6 +519,10 @@
         <div class="card pane">
             <div class="pane-section">
                 API Health: <span id="healthStatus" class="status">Checking...</span>
+            </div>
+
+            <div class="pane-section">
+                <div id="errorText" class="error top-error"></div>
             </div>
 
             <div class="pane-section">

@@ -32,6 +32,10 @@ desktop.ini
 .env
 .env.*
 
+# Local secrets and personal command notes
+*.pem
+quickCommands.txt
+
 # Generated data outputs
 data/output/
 

@@ -12,6 +12,7 @@ PID_WIDTH = 146
 
 
 def parse_finestdat_line(line: str) -> dict[str, str | int]:
+    """Parse one fixed-width FinEstDAT row into normalized core fields."""
     record = line.rstrip("\r\n")
     if len(record) < FINESTDAT_WIDTH:
         raise ValueError(f"Expected at least {FINESTDAT_WIDTH} characters, got {len(record)}")
@@ -39,6 +40,7 @@ def parse_finestdat_line(line: str) -> dict[str, str | int]:
 
 
 def parse_pid_line(line: str) -> dict[str, str]:
+    """Parse one PID fixed-width row used for unit metadata enrichment."""
     record = line.rstrip("\r\n")
     if not record:
         return {}
@@ -69,6 +71,7 @@ def parse_pid_line(line: str) -> dict[str, str]:
 
 
 def load_pid_index(pid_path: Path) -> dict[str, dict[str, str]]:
+    """Load PID records into a unit_id keyed lookup map."""
     pid_index: dict[str, dict[str, str]] = {}
     with pid_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line in handle:
@@ -80,6 +83,7 @@ def load_pid_index(pid_path: Path) -> dict[str, dict[str, str]]:
 
 
 def load_legend_map(csv_path: Path, key_field: str, value_field: str) -> dict[str, str]:
+    """Load a generic legend CSV into a key->description dictionary."""
     mapping: dict[str, str] = {}
     if not csv_path.exists():
         return mapping
@@ -95,6 +99,7 @@ def load_legend_map(csv_path: Path, key_field: str, value_field: str) -> dict[st
 
 
 def load_state_lookup(csv_path: Path) -> dict[str, dict[str, str]]:
+    """Load state FIPS lookup values (name and abbreviation)."""
     mapping: dict[str, dict[str, str]] = {}
     if not csv_path.exists():
         return mapping
@@ -120,6 +125,7 @@ def parse_finestdat_file(
     state_map: dict[str, dict[str, str]] | None = None,
     state_fips_filter: str | None = None,
 ) -> list[dict[str, str | int]]:
+    """Parse the full FinEstDAT file with optional legend and PID enrichment."""
     rows: list[dict[str, str | int]] = []
     with fin_path.open("r", encoding="utf-8", errors="replace") as handle:
         for line_number, line in enumerate(handle, start=1):
@@ -163,6 +169,7 @@ def parse_finestdat_file(
 
 
 def write_csv(rows: list[dict[str, str | int]], output_path: Path, include_pid_fields: bool) -> None:
+    """Write parsed/enriched rows to CSV with dynamic field selection."""
     fieldnames = [
         "unit_id",
         "state_fips",
@@ -190,6 +197,7 @@ def write_csv(rows: list[dict[str, str | int]], output_path: Path, include_pid_f
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Create command-line argument parser for ETL execution."""
     parser = argparse.ArgumentParser(
         description="Parse Census 2023FinEstDAT fixed-width records into a labeled CSV table."
     )
@@ -227,6 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run end-to-end parsing, enrichment, and output generation."""
     parser = build_parser()
     args = parser.parse_args()
 

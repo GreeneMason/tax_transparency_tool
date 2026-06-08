@@ -1,0 +1,16 @@
+{
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "modules": false,
+        "targets": {
+          "browsers": ["> 0.5%", "last 2 versions", "Firefox ESR", "not dead"]
+        }
+      }
+    ]
+  ],
+  "plugins": [
+    "@babel/plugin-proposal-nullish-coalescing-operator"
+  ]
+}
