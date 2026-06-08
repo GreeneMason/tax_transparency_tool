@@ -38,7 +38,7 @@ public class ApiContractIT {
     public void testHealthEndpoint() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").is(anyOf(
+                .andExpect(jsonPath("$.status").value(anyOf(
                     equalTo("UP"),
                     equalTo("DEGRADED")
                 )))
