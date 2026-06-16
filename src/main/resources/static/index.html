@@ -555,25 +555,8 @@
 
             <div class="pane-section">
                 <h3 style="margin-top: 0;">Search Results</h3>
-                <div class="results-scroll">
-                    <table>
-                        <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>County</th>
-                            <th>Type</th>
-                            <th class="right">Population</th>
-                            <th>Unit ID</th>
-                            <th>Action</th>
-                        </tr>
-                        </thead>
-                        <tbody id="resultsBody">
-                        <tr>
-                            <td colspan="6" class="muted">Run a search to view matching governments.</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <div id="searchResultsStatus" class="muted zip-tiles-status">Run a search to view matching governments.</div>
+                <div id="searchResultsTilesGrid" class="zip-tiles-grid"></div>
             </div>
         </div>
 
@@ -645,7 +628,8 @@
     const searchQueryInput = document.getElementById("searchQuery");
     const searchBtn = document.getElementById("searchBtn");
     const errorText = document.getElementById("errorText");
-    const resultsBody = document.getElementById("resultsBody");
+    const searchResultsStatus = document.getElementById("searchResultsStatus");
+    const searchResultsTilesGrid = document.getElementById("searchResultsTilesGrid");
     const selectedPlaceholder = document.getElementById("selectedPlaceholder");
     const selectedProfile = document.getElementById("selectedProfile");
     const expenseYearInput = document.getElementById("expenseYearInput");
@@ -1207,37 +1191,38 @@
     }
 
     function renderResults(results) {
-        resultsBody.innerHTML = "";
+        searchResultsTilesGrid.innerHTML = "";
 
         if (!results.length) {
-            const row = document.createElement("tr");
-            row.innerHTML = `<td colspan="6" class="muted">No matching governments found.</td>`;
-            resultsBody.appendChild(row);
+            searchResultsStatus.textContent = "No matching governments found.";
             return;
         }
 
-        results.forEach((gov, index) => {
-            const row = document.createElement("tr");
-            row.innerHTML = `
-                <td>${gov.unitName || "-"}</td>
-                <td>${gov.countyName || "-"}</td>
-                <td>${gov.govTypeDescription || "-"}</td>
-                <td class="right">${formatNumber(gov.population)}</td>
-                <td>${gov.unitId || "-"}</td>
-                <td><button class="small-btn" data-index="${index}">View</button></td>
-            `;
-            resultsBody.appendChild(row);
-        });
+        searchResultsStatus.textContent = `Found ${results.length} matching government(s).`;
 
-        resultsBody.querySelectorAll("button[data-index]").forEach((button) => {
-            button.addEventListener("click", () => {
-                const gov = latestResults[Number(button.dataset.index)];
+        results.forEach((gov) => {
+            const tile = document.createElement("div");
+            tile.className = "zip-tile";
+            tile.innerHTML = `
+                <div class="zip-tile-title">${escapeHtml(gov.unitName || "Unknown Government")}</div>
+                <div class="zip-tile-badge">${escapeHtml(gov.stateAbbrev || gov.state || "-")}</div>
+                <div class="zip-tile-meta">
+                    ${escapeHtml(gov.countyName || gov.county || "Unknown County")} &bull; ${escapeHtml(gov.govTypeDescription || "Unknown Type")}<br/>
+                    Unit ID: ${escapeHtml(gov.unitId || "-")} &bull; Population: ${escapeHtml(formatNumber(gov.population))}
+                </div>
+                <button type="button" class="small-btn">Use This Government</button>
+            `;
+
+            const useButton = tile.querySelector("button");
+            useButton.addEventListener("click", () => {
                 selectedGovernment = gov;
                 latestExpenseData = null;
                 renderSelectedGovernment(gov);
                 errorText.textContent = "";
                 loadExpenseChart();
             });
+
+            searchResultsTilesGrid.appendChild(tile);
         });
     }
 
