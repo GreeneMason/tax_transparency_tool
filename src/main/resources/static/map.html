@@ -442,16 +442,42 @@ function buildFillColorExpression(fipsColorMap, defaultColor = "#1a1e28") {
 async function initDb() {
     setStatus("Initializing database connection...");
 
-    // Dynamically import from esm.sh which converts the CJS package to ESM
-    const { createDbWorker } = await import("https://esm.sh/sql.js-httpvfs@0.8.12");
+    // esm.sh wraps CJS modules — createDbWorker may be a named export OR under .default
+    // Try multiple CDNs in order; use whichever resolves createDbWorker first.
+    let createDbWorker = null;
+    const cdns = [
+        "https://esm.sh/sql.js-httpvfs@0.8.12",
+        "https://cdn.skypack.dev/sql.js-httpvfs@0.8.12",
+    ];
+    for (const cdn of cdns) {
+        try {
+            const mod = await import(cdn);
+            createDbWorker = mod.createDbWorker ?? mod.default?.createDbWorker ?? mod.default;
+            if (typeof createDbWorker === "function") break;
+            createDbWorker = null;
+        } catch (e) {
+            console.warn("CDN import failed:", cdn, e);
+        }
+    }
+    if (typeof createDbWorker !== "function") {
+        throw new Error(
+            "Could not load createDbWorker from any CDN. " +
+            "Your browser may block cross-origin workers or dynamic imports."
+        );
+    }
 
-    // Fetch the worker as a Blob and create an object URL to avoid
-    // cross-origin Worker restrictions (workers must be same-origin by default)
-    const workerResp = await fetch("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js");
+    // Fetch the worker as a Blob so we can create a same-origin URL for it.
+    // Browsers block new Worker(crossOriginUrl) but allow Blob object URLs.
+    setStatus("Downloading worker script...");
+    const workerResp = await fetch(
+        "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js"
+    );
+    if (!workerResp.ok) throw new Error("Failed to fetch sqlite.worker.js");
     const workerBlob = await workerResp.blob();
-    const workerUrl  = URL.createObjectURL(workerBlob);
+    const workerUrl  = URL.createObjectURL(new Blob([await workerBlob.text()], { type: "text/javascript" }));
     const wasmUrl    = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
 
+    setStatus("Connecting to database...");
     db = await createDbWorker(
         [{
             from: "url",
