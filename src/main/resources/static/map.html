@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
-    <!-- sql.js-httpvfs loaded via dynamic ESM import in the module script below -->
+    <!-- sql.js-httpvfs loading removed — data comes from the Spring Boot API -->
 
     <style>
         :root {
@@ -311,7 +311,7 @@
         <div class="sidebar-section" style="margin-top:auto; padding-top:16px;">
             <div class="status-text">
                 Source: U.S. Census Bureau — Annual Survey of State &amp; Local Government Finances (2023).
-                Data fetched from S3 via HTTP Range Requests — only queried bytes are downloaded.
+                Data served from the GovLens API, aggregated by county.
             </div>
         </div>
 
@@ -336,10 +336,27 @@
 
 <script type="module">
 // ── Configuration ──────────────────────────────────────────────────────────────
-const SQLITE_URL = "https://publictaxdata-map.s3.us-east-1.amazonaws.com/govlens_map.sqlite3";
-
 // US counties GeoJSON from a reliable CDN (Census TIGER simplified ~2MB)
 const COUNTIES_GEOJSON_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json";
+
+// API base — empty string = same origin (Spring Boot serves both map.html and the API)
+const API_BASE = (window.localStorage.getItem("govlensApiBase") || "").trim();
+const FALLBACK_API = "http://localhost:8081";
+
+async function apiFetch(path) {
+    const primary  = API_BASE ? `${API_BASE}${path}` : path;
+    const fallback = `${FALLBACK_API}${path}`;
+    try {
+        const r = await fetch(primary);
+        if (r.ok) return r;
+        // If relative path 404s in dev, try fallback port
+        if (!API_BASE) return fetch(fallback);
+        return r;
+    } catch (e) {
+        if (!API_BASE) return fetch(fallback);
+        throw e;
+    }
+}
 
 // Color stops for choropleth (low → high)
 const COLOR_STOPS = [
@@ -370,10 +387,9 @@ const ttMetric        = document.getElementById("ttMetric");
 const ttAmount        = document.getElementById("ttAmount");
 
 // ── State ──────────────────────────────────────────────────────────────────────
-let db       = null;
 let map      = null;
-let topoData = null;   // raw topojson
-let countyFeatures = null; // geojson features array
+let topoData = null;
+let countyFeatures = null;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 function setLoading(on, msg = "Querying database...") {
@@ -438,142 +454,52 @@ function buildFillColorExpression(fipsColorMap, defaultColor = "#1a1e28") {
     return expr;
 }
 
-// ── sql.js-httpvfs init ────────────────────────────────────────────────────────
-async function initDb() {
-    setStatus("Initializing database connection...");
-
-    // SharedArrayBuffer requires cross-origin isolation (COOP + COEP headers).
-    // The Spring Boot CrossOriginIsolationFilter sets these on /map.html.
-    if (!crossOriginIsolated) {
-        throw new Error(
-            "Page is not cross-origin isolated. " +
-            "The server must send Cross-Origin-Opener-Policy: same-origin " +
-            "and Cross-Origin-Embedder-Policy: require-corp headers on this page."
-        );
-    }
-
-    // esm.sh converts CJS → ESM. createDbWorker may be named export or .default.
-    const mod = await import("https://esm.sh/sql.js-httpvfs@0.8.12");
-    const createDbWorker = mod.createDbWorker
-        ?? mod.default?.createDbWorker
-        ?? (typeof mod.default === "function" ? mod.default : null);
-
-    if (typeof createDbWorker !== "function") {
-        throw new Error(
-            "createDbWorker not found in module. Keys: " + Object.keys(mod).join(", ")
-        );
-    }
-
-    // Fetch the worker script and re-wrap as a Blob URL so the browser
-    // treats it as same-origin (required for Worker construction).
-    setStatus("Downloading worker script...");
-    const workerResp = await fetch(
-        "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js"
-    );
-    if (!workerResp.ok) throw new Error("Failed to fetch sqlite.worker.js");
-    const workerText = await workerResp.text();
-    const workerUrl  = URL.createObjectURL(new Blob([workerText], { type: "text/javascript" }));
-    const wasmUrl    = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
-
-    setStatus("Connecting to database...");
-    db = await createDbWorker(
-        [{
-            from: "url",
-            url:  SQLITE_URL,
-            requestChunkSize: 4096,
-        }],
-        workerUrl,
-        wasmUrl
-    );
-
-    setStatus("Database ready.");
-    return db;
-}
-
-// ── Load category list ─────────────────────────────────────────────────────────
+// ── API: load category list ────────────────────────────────────────────────────
 async function loadCategories() {
-    // sql.js-httpvfs uses exec() which returns [{columns, values}]
-    const results = await db.db.exec(
-        "SELECT DISTINCT item_code, item_description FROM finance ORDER BY item_description LIMIT 300"
-    );
-    const rows = results[0]?.values || [];
+    const resp = await apiFetch("/api/v1/map/item-codes");
+    if (!resp.ok) throw new Error("Failed to load item codes: " + resp.status);
+    const codes = await resp.json();
 
     categorySelect.innerHTML = "";
 
-    // Add a grouped "Total spending" option
     const allOpt = document.createElement("option");
     allOpt.value = "__ALL__";
     allOpt.textContent = "All Categories (Total)";
     categorySelect.appendChild(allOpt);
 
-    for (const row of rows) {
+    for (const entry of codes) {
         const opt = document.createElement("option");
-        opt.value = row[0];
-        opt.textContent = `${row[0]} — ${row[1]}`;
+        opt.value = entry.itemCode;
+        opt.textContent = `${entry.itemCode} — ${entry.itemDescription}`;
         categorySelect.appendChild(opt);
     }
 }
 
-// ── Query: aggregate spending by county_fips ───────────────────────────────────
-async function queryCountyData(itemCode, year, metric) {
-    let sql, params;
-
-    const isAll = itemCode === "__ALL__";
-
-    if (isAll) {
-        sql = `
-            SELECT
-                county_fips,
-                state_fips,
-                SUM(amount_thousands) * 1000          AS total_amount,
-                MAX(population)                        AS population,
-                CASE WHEN MAX(population) > 0
-                     THEN CAST(SUM(amount_thousands) * 1000 AS REAL) / MAX(population)
-                     ELSE 0 END                        AS per_capita
-            FROM finance
-            WHERE year = ?
-              AND county_fips != ''
-              AND population > 0
-            GROUP BY county_fips, state_fips
-        `;
-        params = [year];
-    } else {
-        sql = `
-            SELECT
-                county_fips,
-                state_fips,
-                SUM(amount_thousands) * 1000          AS total_amount,
-                MAX(population)                        AS population,
-                CASE WHEN MAX(population) > 0
-                     THEN CAST(SUM(amount_thousands) * 1000 AS REAL) / MAX(population)
-                     ELSE 0 END                        AS per_capita
-            FROM finance
-            WHERE year = ?
-              AND item_code = ?
-              AND county_fips != ''
-              AND population > 0
-            GROUP BY county_fips, state_fips
-        `;
-        params = [year, itemCode];
+// ── API: fetch county spending ─────────────────────────────────────────────────
+async function queryCountyData(itemCode, year) {
+    const resp = await apiFetch(
+        `/api/v1/map/county-spending?itemCode=${encodeURIComponent(itemCode)}&year=${encodeURIComponent(year)}`
+    );
+    if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || `API error ${resp.status}`);
     }
-
-    const results = await db.db.exec(sql, params);
-    return results[0]?.values || []; // [[county_fips, state_fips, total_amount, population, per_capita], ...]
+    // Returns [{countyFips, stateFips, stateAbbrev, countyName, totalAmountThousands, population, perCapita}, ...]
+    return resp.json();
 }
 
 // ── Build choropleth ───────────────────────────────────────────────────────────
 function buildChoropleth(rows, metric) {
-    // rows: [county_fips, state_fips, total_amount, population, per_capita]
-    const valueIndex = metric === "per_capita" ? 4 : 2;
-    const dataMap = new Map(); // fips5 (state+county) → value
-
+    const dataMap = new Map(); // fips5 → value
     let min = Infinity, max = -Infinity;
 
     for (const row of rows) {
-        const fips5 = row[1].padStart(2,"0") + row[0].padStart(3,"0"); // state(2) + county(3)
-        const val   = Number(row[valueIndex]) || 0;
+        const fips5 = row.stateFips.padStart(2,"0") + row.countyFips.padStart(3,"0");
+        const val   = metric === "per_capita"
+            ? (row.perCapita || 0)
+            : (row.totalAmountThousands * 1000 || 0);
         if (val > 0) {
-            dataMap.set(fips5, val);
+            dataMap.set(fips5, { val, row });
             if (val < min) min = val;
             if (val > max) max = val;
         }
@@ -581,13 +507,12 @@ function buildChoropleth(rows, metric) {
 
     if (dataMap.size === 0) return { fipsColorMap: {}, dataMap, min: 0, max: 0 };
 
-    // Use log scale for better color distribution
     const logMin = Math.log1p(min);
     const logMax = Math.log1p(max);
     const range  = logMax - logMin || 1;
 
     const fipsColorMap = {};
-    for (const [fips5, val] of dataMap.entries()) {
+    for (const [fips5, { val }] of dataMap.entries()) {
         const t = (Math.log1p(val) - logMin) / range;
         fipsColorMap[fips5] = interpolateColor(t);
     }
@@ -744,24 +669,25 @@ let currentMetric  = "per_capita";
 let currentLabel   = "All Categories";
 
 function updateHover(fips5, point) {
-    const val = currentDataMap.get(fips5);
+    const entry = currentDataMap.get(fips5);
+    const val   = entry?.val;
 
-    // Find county name from features
-    const feature = countyFeatures?.find(f => f.properties.GEOID === fips5 || f.properties.id === fips5);
-    const countyName = feature?.properties?.name || fips5 || "Unknown";
+    // Find county name from API row first, fallback to GeoJSON feature
+    const countyName = entry?.row?.countyName
+        || countyFeatures?.find(f => f.properties.GEOID === fips5)?.properties?.name
+        || fips5
+        || "Unknown";
 
     const metricLabel = currentMetric === "per_capita" ? "Per Capita" : "Total Spending";
     const valStr = val != null ? fmt(val) : "No data";
 
-    // Update sidebar panel
     hoverPanel.innerHTML = `
         <strong>${countyName}</strong><br/>
         ${currentLabel}<br/>
         ${metricLabel}: <strong>${valStr}</strong>
     `;
 
-    // Update tooltip
-    ttTitle.textContent = countyName;
+    ttTitle.textContent  = countyName;
     ttCounty.textContent = `FIPS: ${fips5}`;
     ttMetric.textContent = `${metricLabel} — ${currentLabel}`;
     ttAmount.textContent = valStr;
@@ -788,9 +714,9 @@ async function renderChoropleth() {
         currentLabel  = selectedText.length > 40 ? selectedText.slice(0, 40) + "…" : selectedText;
         currentMetric = metric;
 
-        setStatus("Fetching from S3 (range requests)...");
+        setStatus("Fetching from API...");
         const t0   = performance.now();
-        const rows = await queryCountyData(itemCode, year, metric);
+        const rows = await queryCountyData(itemCode, year);
         const ms   = Math.round(performance.now() - t0);
 
         if (!rows.length) {
@@ -822,15 +748,15 @@ async function renderChoropleth() {
     try {
         setLoading(true, "Initializing...");
 
-        // Init DB and map in parallel
+        // Load categories and map in parallel
         await Promise.all([
-            initDb().then(() => loadCategories()),
+            loadCategories(),
             initMap()
         ]);
 
         renderBtn.addEventListener("click", renderChoropleth);
 
-        // Auto-render on load with a sensible default
+        // Auto-render on load with default selection
         await renderChoropleth();
 
     } catch (err) {
