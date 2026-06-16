@@ -9,10 +9,7 @@
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
 
-    <!-- sql.js-httpvfs -->
-    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js" type="text/javascript" id="sqlWorkerScript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.js" id="sqlWasmScript"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/index.js"></script>
+    <!-- sql.js-httpvfs loaded via dynamic ESM import in the module script below -->
 
     <style>
         :root {
@@ -445,16 +442,23 @@ function buildFillColorExpression(fipsColorMap, defaultColor = "#1a1e28") {
 async function initDb() {
     setStatus("Initializing database connection...");
 
-    const workerScript = document.getElementById("sqlWorkerScript").src;
-    const wasmUrl      = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
+    // Dynamically import from esm.sh which converts the CJS package to ESM
+    const { createDbWorker } = await import("https://esm.sh/sql.js-httpvfs@0.8.12");
 
-    db = await window.sqlJsHttpvfs.createDbWorker(
+    // Fetch the worker as a Blob and create an object URL to avoid
+    // cross-origin Worker restrictions (workers must be same-origin by default)
+    const workerResp = await fetch("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js");
+    const workerBlob = await workerResp.blob();
+    const workerUrl  = URL.createObjectURL(workerBlob);
+    const wasmUrl    = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
+
+    db = await createDbWorker(
         [{
             from: "url",
             url:  SQLITE_URL,
             requestChunkSize: 4096,
         }],
-        workerScript,
+        workerUrl,
         wasmUrl
     );
 
@@ -464,9 +468,11 @@ async function initDb() {
 
 // ── Load category list ─────────────────────────────────────────────────────────
 async function loadCategories() {
-    const rows = await db.db.query(
+    // sql.js-httpvfs uses exec() which returns [{columns, values}]
+    const results = await db.db.exec(
         "SELECT DISTINCT item_code, item_description FROM finance ORDER BY item_description LIMIT 300"
     );
+    const rows = results[0]?.values || [];
 
     categorySelect.innerHTML = "";
 
@@ -527,8 +533,8 @@ async function queryCountyData(itemCode, year, metric) {
         params = [year, itemCode];
     }
 
-    const rows = await db.db.query(sql, params);
-    return rows; // [[county_fips, state_fips, total_amount, population, per_capita], ...]
+    const results = await db.db.exec(sql, params);
+    return results[0]?.values || []; // [[county_fips, state_fips, total_amount, population, per_capita], ...]
 }
 
 // ── Build choropleth ───────────────────────────────────────────────────────────
