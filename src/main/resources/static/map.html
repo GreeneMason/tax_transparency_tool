@@ -442,39 +442,37 @@ function buildFillColorExpression(fipsColorMap, defaultColor = "#1a1e28") {
 async function initDb() {
     setStatus("Initializing database connection...");
 
-    // esm.sh wraps CJS modules — createDbWorker may be a named export OR under .default
-    // Try multiple CDNs in order; use whichever resolves createDbWorker first.
-    let createDbWorker = null;
-    const cdns = [
-        "https://esm.sh/sql.js-httpvfs@0.8.12",
-        "https://cdn.skypack.dev/sql.js-httpvfs@0.8.12",
-    ];
-    for (const cdn of cdns) {
-        try {
-            const mod = await import(cdn);
-            createDbWorker = mod.createDbWorker ?? mod.default?.createDbWorker ?? mod.default;
-            if (typeof createDbWorker === "function") break;
-            createDbWorker = null;
-        } catch (e) {
-            console.warn("CDN import failed:", cdn, e);
-        }
-    }
-    if (typeof createDbWorker !== "function") {
+    // SharedArrayBuffer requires cross-origin isolation (COOP + COEP headers).
+    // The Spring Boot CrossOriginIsolationFilter sets these on /map.html.
+    if (!crossOriginIsolated) {
         throw new Error(
-            "Could not load createDbWorker from any CDN. " +
-            "Your browser may block cross-origin workers or dynamic imports."
+            "Page is not cross-origin isolated. " +
+            "The server must send Cross-Origin-Opener-Policy: same-origin " +
+            "and Cross-Origin-Embedder-Policy: require-corp headers on this page."
         );
     }
 
-    // Fetch the worker as a Blob so we can create a same-origin URL for it.
-    // Browsers block new Worker(crossOriginUrl) but allow Blob object URLs.
+    // esm.sh converts CJS → ESM. createDbWorker may be named export or .default.
+    const mod = await import("https://esm.sh/sql.js-httpvfs@0.8.12");
+    const createDbWorker = mod.createDbWorker
+        ?? mod.default?.createDbWorker
+        ?? (typeof mod.default === "function" ? mod.default : null);
+
+    if (typeof createDbWorker !== "function") {
+        throw new Error(
+            "createDbWorker not found in module. Keys: " + Object.keys(mod).join(", ")
+        );
+    }
+
+    // Fetch the worker script and re-wrap as a Blob URL so the browser
+    // treats it as same-origin (required for Worker construction).
     setStatus("Downloading worker script...");
     const workerResp = await fetch(
         "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js"
     );
     if (!workerResp.ok) throw new Error("Failed to fetch sqlite.worker.js");
-    const workerBlob = await workerResp.blob();
-    const workerUrl  = URL.createObjectURL(new Blob([await workerBlob.text()], { type: "text/javascript" }));
+    const workerText = await workerResp.text();
+    const workerUrl  = URL.createObjectURL(new Blob([workerText], { type: "text/javascript" }));
     const wasmUrl    = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
 
     setStatus("Connecting to database...");
