@@ -593,6 +593,13 @@ async function initMap() {
     await new Promise(resolve => topoScript.onload = resolve);
 
     const geojson = window.topojson.feature(topoData, topoData.objects.counties);
+
+    // us-atlas stores FIPS as a numeric feature id (e.g. 53033).
+    // Stamp a zero-padded string "GEOID" property so the match expression works.
+    geojson.features.forEach(f => {
+        f.properties.GEOID = String(f.id).padStart(5, "0");
+    });
+
     countyFeatures = geojson.features;
 
     map.addSource("counties", {
