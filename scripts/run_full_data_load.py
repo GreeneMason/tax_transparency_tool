@@ -24,9 +24,10 @@ from typing import Dict, List, Any
 
 
 class DataLoadOrchestrator:
-    def __init__(self, workspace_root: Path, env_config: Dict[str, str]):
+    def __init__(self, workspace_root: Path, env_config: Dict[str, str], skip_sqlite_export: bool = False):
         self.workspace_root = workspace_root
         self.env_config = env_config
+        self.skip_sqlite_export = skip_sqlite_export
         self.report: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat(),
             "workspace_root": str(workspace_root),
@@ -165,6 +166,22 @@ class DataLoadOrchestrator:
             "Promote staging data to dimensions (dim_*) and fact (fact_finance_unit_item_year)",
         )
 
+    def run_sqlite_export(self) -> bool:
+        """Step 5: Export enriched finance data to SQLite for Phase 7 choropleth map."""
+        cmd = [
+            sys.executable,
+            "scripts/export_sqlite_map.py",
+            "--db-user",     self.env_config.get("DB_USER", "postgres"),
+            "--db-name",     self.env_config.get("DB_NAME", "govlens"),
+            "--db-password", self.env_config.get("PGPASSWORD", "postgres"),
+            "--workspace-root", str(self.workspace_root),
+        ]
+        return self.run_step(
+            "sqlite_export",
+            cmd,
+            "Export finance data to SQLite for Phase 7 choropleth map (sql.js-httpvfs range requests)",
+        )
+
     def run_release_gate(self) -> bool:
         """Step 4: Run release-gate validation checks."""
         cmd = [
@@ -245,6 +262,11 @@ class DataLoadOrchestrator:
                 self.report["summary"]["status"] = "failed"
                 return 1
 
+            if not self.skip_sqlite_export:
+                if not self.run_sqlite_export():
+                    self.report["summary"]["status"] = "failed"
+                    return 1
+
             self.collect_stats()
             self.report["summary"]["status"] = "success"
             print("\n" + "=" * 70)
@@ -294,6 +316,12 @@ def build_parser() -> argparse.ArgumentParser:
         default="postgres",
         help="PostgreSQL password (default: postgres, override via env: DB_PASSWORD)",
     )
+    parser.add_argument(
+        "--skip-sqlite-export",
+        action="store_true",
+        default=False,
+        help="Skip the Phase 7.1 SQLite map export step",
+    )
     return parser
 
 
@@ -308,7 +336,7 @@ def main() -> int:
         "PATH": f"C:\\Program Files\\PostgreSQL\\17\\bin;{Path.home()}\\AppData\\Local\\Programs\\Python\\Python311\\Scripts",
     }
 
-    orchestrator = DataLoadOrchestrator(args.workspace_root, env_config)
+    orchestrator = DataLoadOrchestrator(args.workspace_root, env_config, skip_sqlite_export=args.skip_sqlite_export)
     return orchestrator.run()
 
 

@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Finance Map — Public Tax Data</title>
+
+    <!-- MapLibre GL JS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+
+    <!-- sql.js-httpvfs -->
+    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sqlite.worker.js" type="text/javascript" id="sqlWorkerScript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.js" id="sqlWasmScript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/index.js"></script>
+
+    <style>
+        :root {
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            color-scheme: light dark;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #111317;
+            color: #e9e9ea;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Nav ── */
+        .nav {
+            border-bottom: 1px solid #2a2e37;
+            background: #191c22;
+            flex-shrink: 0;
+        }
+
+        .nav-inner {
+            max-width: 100%;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .brand-title { font-size: 1.2rem; font-weight: 700; white-space: nowrap; }
+        .brand-subtitle { color: #b4b7bd; font-size: 0.82rem; }
+
+        .nav-link {
+            color: #b4b7bd;
+            text-decoration: none;
+            font-size: 0.875rem;
+            border: 1px solid #3a3f4b;
+            border-radius: 6px;
+            padding: 6px 14px;
+            white-space: nowrap;
+            transition: color 0.15s, border-color 0.15s, background 0.15s;
+        }
+
+        .nav-link:hover { color: #e9e9ea; border-color: #6c8ebf; background: #1e2530; }
+
+        .nav-spacer { flex: 1; }
+
+        /* ── Layout ── */
+        .layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 300px;
+            min-width: 260px;
+            background: #191c22;
+            border-right: 1px solid #2a2e37;
+            overflow-y: auto;
+            padding: 16px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .sidebar h2 {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .sidebar-section {
+            border-top: 1px solid #2d3340;
+            padding-top: 14px;
+        }
+
+        .sidebar-section:first-child { border-top: none; padding-top: 0; }
+
+        label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #aeb5c8;
+            margin-bottom: 5px;
+        }
+
+        select, input[type="number"] {
+            width: 100%;
+            border: 1px solid #3b404c;
+            border-radius: 7px;
+            background: #101218;
+            color: #f2f2f3;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+        }
+
+        select:focus, input:focus {
+            outline: 2px solid #5b9cff;
+            outline-offset: 1px;
+        }
+
+        button {
+            width: 100%;
+            border: 1px solid #345cff;
+            border-radius: 7px;
+            background: #345cff;
+            color: #fff;
+            padding: 9px 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s;
+        }
+
+        button:hover { background: #2448e8; border-color: #2448e8; }
+        button:disabled { background: #4d5461; border-color: #4d5461; cursor: not-allowed; }
+
+        /* ── Status / legend ── */
+        .status-text {
+            font-size: 0.82rem;
+            color: #b4b7bd;
+            min-height: 18px;
+        }
+
+        .error-text {
+            font-size: 0.82rem;
+            color: #ff9b9b;
+            min-height: 18px;
+        }
+
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 0.8rem;
+        }
+
+        .legend-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-swatch {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .legend-label { color: #d6d9e2; }
+        .legend-value { margin-left: auto; color: #aeb5c8; font-variant-numeric: tabular-nums; }
+
+        /* ── Tooltip ── */
+        .map-tooltip {
+            position: absolute;
+            background: #191c22;
+            border: 1px solid #3a3f4b;
+            border-radius: 8px;
+            padding: 10px 14px;
+            pointer-events: none;
+            font-size: 0.85rem;
+            max-width: 240px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 10;
+            display: none;
+        }
+
+        .tooltip-title { font-weight: 700; margin-bottom: 4px; }
+        .tooltip-row { color: #aeb5c8; font-size: 0.8rem; }
+        .tooltip-amount { color: #e9e9ea; font-weight: 600; }
+
+        /* ── Map ── */
+        #map {
+            flex: 1;
+            position: relative;
+        }
+
+        /* ── Loading overlay ── */
+        .map-loading {
+            position: absolute;
+            inset: 0;
+            background: rgba(17,19,23,0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            color: #b4b7bd;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .map-loading.visible { opacity: 1; pointer-events: all; }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #3a3f4b;
+            border-top-color: #345cff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 12px;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Hover panel ── */
+        .hover-panel {
+            font-size: 0.82rem;
+            color: #b4b7bd;
+            min-height: 20px;
+            padding: 6px 8px;
+            background: #101218;
+            border: 1px solid #2d3340;
+            border-radius: 6px;
+        }
+
+        @media (max-width: 700px) {
+            .layout { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #2a2e37; max-height: 50vh; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+    <div class="nav-inner">
+        <div>
+            <div class="brand-title">Public Tax Data</div>
+            <div class="brand-subtitle">Finance Map</div>
+        </div>
+        <span class="nav-spacer"></span>
+        <a href="/" class="nav-link">← Search</a>
+        <a href="https://masongreene.dev" target="_blank" rel="noopener noreferrer" class="nav-link">Contact Me</a>
+    </div>
+</nav>
+
+<!-- Main layout -->
+<div class="layout">
+
+    <!-- Sidebar controls -->
+    <aside class="sidebar">
+
+        <div class="sidebar-section">
+            <h2>Expense Map</h2>
+            <p class="status-text" style="margin-top:4px;">
+                Colors show per-capita spending by county. Hover a county for details.
+            </p>
+        </div>
+
+        <div class="sidebar-section">
+            <label for="categorySelect">Expense Category</label>
+            <select id="categorySelect">
+                <option value="">Loading categories...</option>
+            </select>
+        </div>
+
+        <div class="sidebar-section">
+            <label for="yearInput">Year</label>
+            <input id="yearInput" type="number" min="1990" max="2100" value="2023" />
+        </div>
+
+        <div class="sidebar-section">
+            <label for="metricSelect">Metric</label>
+            <select id="metricSelect">
+                <option value="per_capita">Per Capita ($)</option>
+                <option value="total">Total Spending ($)</option>
+            </select>
+        </div>
+
+        <div class="sidebar-section">
+            <button id="renderBtn">Update Map</button>
+            <div id="errorText" class="error-text" style="margin-top:8px;"></div>
+            <div id="statusText" class="status-text" style="margin-top:4px;"></div>
+        </div>
+
+        <div class="sidebar-section">
+            <label>Color Scale</label>
+            <div id="legendContainer" class="legend">
+                <div class="status-text">Run a query to see the legend.</div>
+            </div>
+        </div>
+
+        <div class="sidebar-section">
+            <label>Hovered County</label>
+            <div id="hoverPanel" class="hover-panel">Hover a county on the map.</div>
+        </div>
+
+        <div class="sidebar-section" style="margin-top:auto; padding-top:16px;">
+            <div class="status-text">
+                Source: U.S. Census Bureau — Annual Survey of State &amp; Local Government Finances (2023).
+                Data fetched from S3 via HTTP Range Requests — only queried bytes are downloaded.
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- Map -->
+    <div id="map">
+        <div class="map-loading" id="mapLoading">
+            <div class="spinner"></div>
+            Loading map data...
+        </div>
+    </div>
+</div>
+
+<!-- Tooltip -->
+<div class="map-tooltip" id="mapTooltip">
+    <div class="tooltip-title" id="ttTitle"></div>
+    <div class="tooltip-row" id="ttCounty"></div>
+    <div class="tooltip-row" id="ttMetric"></div>
+    <div class="tooltip-amount" id="ttAmount"></div>
+</div>
+
+<script type="module">
+// ── Configuration ──────────────────────────────────────────────────────────────
+const SQLITE_URL = "https://publictaxdata-map.s3.us-east-1.amazonaws.com/govlens_map.sqlite3";
+
+// US counties GeoJSON from a reliable CDN (Census TIGER simplified ~2MB)
+const COUNTIES_GEOJSON_URL = "https://cdn.jsdelivr.net/npm/us-atlas@3/counties-10m.json";
+
+// Color stops for choropleth (low → high)
+const COLOR_STOPS = [
+    [0,      "#1a2744"],
+    [0.125,  "#1e3a6e"],
+    [0.25,   "#1f5498"],
+    [0.375,  "#2471b8"],
+    [0.5,    "#4e9ecf"],
+    [0.625,  "#7fc4e1"],
+    [0.75,   "#b8dff0"],
+    [1.0,    "#e8f7ff"],
+];
+
+// ── DOM refs ───────────────────────────────────────────────────────────────────
+const categorySelect  = document.getElementById("categorySelect");
+const yearInput       = document.getElementById("yearInput");
+const metricSelect    = document.getElementById("metricSelect");
+const renderBtn       = document.getElementById("renderBtn");
+const errorText       = document.getElementById("errorText");
+const statusText      = document.getElementById("statusText");
+const legendContainer = document.getElementById("legendContainer");
+const hoverPanel      = document.getElementById("hoverPanel");
+const mapLoading      = document.getElementById("mapLoading");
+const tooltip         = document.getElementById("mapTooltip");
+const ttTitle         = document.getElementById("ttTitle");
+const ttCounty        = document.getElementById("ttCounty");
+const ttMetric        = document.getElementById("ttMetric");
+const ttAmount        = document.getElementById("ttAmount");
+
+// ── State ──────────────────────────────────────────────────────────────────────
+let db       = null;
+let map      = null;
+let topoData = null;   // raw topojson
+let countyFeatures = null; // geojson features array
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function setLoading(on, msg = "Querying database...") {
+    mapLoading.querySelector("div + div") && (mapLoading.childNodes[2].textContent = msg);
+    mapLoading.classList.toggle("visible", on);
+    renderBtn.disabled = on;
+}
+
+function setError(msg) {
+    errorText.textContent = msg || "";
+}
+
+function setStatus(msg) {
+    statusText.textContent = msg || "";
+}
+
+function fmt(n) {
+    if (n === null || n === undefined || isNaN(n)) return "-";
+    return "$" + Math.round(n).toLocaleString();
+}
+
+function fmtK(n) {
+    if (!n) return "-";
+    if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1) + "M";
+    if (n >= 1_000)     return "$" + (n / 1_000).toFixed(0) + "K";
+    return "$" + Math.round(n).toLocaleString();
+}
+
+// Map a 0-1 normalized value to a hex color using COLOR_STOPS
+function interpolateColor(t) {
+    t = Math.max(0, Math.min(1, t));
+    for (let i = 1; i < COLOR_STOPS.length; i++) {
+        if (t <= COLOR_STOPS[i][0]) {
+            const lo = COLOR_STOPS[i-1], hi = COLOR_STOPS[i];
+            const ratio = (t - lo[0]) / (hi[0] - lo[0]);
+            return lerpHex(lo[1], hi[1], ratio);
+        }
+    }
+    return COLOR_STOPS[COLOR_STOPS.length - 1][1];
+}
+
+function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function lerpHex(a, b, t) {
+    const ca = hexToRgb(a), cb = hexToRgb(b);
+    const r = Math.round(ca[0] + (cb[0]-ca[0])*t);
+    const g = Math.round(ca[1] + (cb[1]-ca[1])*t);
+    const bl = Math.round(ca[2] + (cb[2]-ca[2])*t);
+    return "#" + [r,g,bl].map(x => x.toString(16).padStart(2,"0")).join("");
+}
+
+// Build MapLibre expression from a fips→color map
+function buildFillColorExpression(fipsColorMap, defaultColor = "#1a1e28") {
+    const expr = ["match", ["get", "GEOID"]];
+    for (const [fips, color] of Object.entries(fipsColorMap)) {
+        expr.push(fips, color);
+    }
+    expr.push(defaultColor);
+    return expr;
+}
+
+// ── sql.js-httpvfs init ────────────────────────────────────────────────────────
+async function initDb() {
+    setStatus("Initializing database connection...");
+
+    const workerScript = document.getElementById("sqlWorkerScript").src;
+    const wasmUrl      = "https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/dist/sql-wasm.wasm";
+
+    db = await window.sqlJsHttpvfs.createDbWorker(
+        [{
+            from: "url",
+            url:  SQLITE_URL,
+            requestChunkSize: 4096,
+        }],
+        workerScript,
+        wasmUrl
+    );
+
+    setStatus("Database ready.");
+    return db;
+}
+
+// ── Load category list ─────────────────────────────────────────────────────────
+async function loadCategories() {
+    const rows = await db.db.query(
+        "SELECT DISTINCT item_code, item_description FROM finance ORDER BY item_description LIMIT 300"
+    );
+
+    categorySelect.innerHTML = "";
+
+    // Add a grouped "Total spending" option
+    const allOpt = document.createElement("option");
+    allOpt.value = "__ALL__";
+    allOpt.textContent = "All Categories (Total)";
+    categorySelect.appendChild(allOpt);
+
+    for (const row of rows) {
+        const opt = document.createElement("option");
+        opt.value = row[0];
+        opt.textContent = `${row[0]} — ${row[1]}`;
+        categorySelect.appendChild(opt);
+    }
+}
+
+// ── Query: aggregate spending by county_fips ───────────────────────────────────
+async function queryCountyData(itemCode, year, metric) {
+    let sql, params;
+
+    const isAll = itemCode === "__ALL__";
+
+    if (isAll) {
+        sql = `
+            SELECT
+                county_fips,
+                state_fips,
+                SUM(amount_thousands) * 1000          AS total_amount,
+                MAX(population)                        AS population,
+                CASE WHEN MAX(population) > 0
+                     THEN CAST(SUM(amount_thousands) * 1000 AS REAL) / MAX(population)
+                     ELSE 0 END                        AS per_capita
+            FROM finance
+            WHERE year = ?
+              AND county_fips != ''
+              AND population > 0
+            GROUP BY county_fips, state_fips
+        `;
+        params = [year];
+    } else {
+        sql = `
+            SELECT
+                county_fips,
+                state_fips,
+                SUM(amount_thousands) * 1000          AS total_amount,
+                MAX(population)                        AS population,
+                CASE WHEN MAX(population) > 0
+                     THEN CAST(SUM(amount_thousands) * 1000 AS REAL) / MAX(population)
+                     ELSE 0 END                        AS per_capita
+            FROM finance
+            WHERE year = ?
+              AND item_code = ?
+              AND county_fips != ''
+              AND population > 0
+            GROUP BY county_fips, state_fips
+        `;
+        params = [year, itemCode];
+    }
+
+    const rows = await db.db.query(sql, params);
+    return rows; // [[county_fips, state_fips, total_amount, population, per_capita], ...]
+}
+
+// ── Build choropleth ───────────────────────────────────────────────────────────
+function buildChoropleth(rows, metric) {
+    // rows: [county_fips, state_fips, total_amount, population, per_capita]
+    const valueIndex = metric === "per_capita" ? 4 : 2;
+    const dataMap = new Map(); // fips5 (state+county) → value
+
+    let min = Infinity, max = -Infinity;
+
+    for (const row of rows) {
+        const fips5 = row[1].padStart(2,"0") + row[0].padStart(3,"0"); // state(2) + county(3)
+        const val   = Number(row[valueIndex]) || 0;
+        if (val > 0) {
+            dataMap.set(fips5, val);
+            if (val < min) min = val;
+            if (val > max) max = val;
+        }
+    }
+
+    if (dataMap.size === 0) return { fipsColorMap: {}, dataMap, min: 0, max: 0 };
+
+    // Use log scale for better color distribution
+    const logMin = Math.log1p(min);
+    const logMax = Math.log1p(max);
+    const range  = logMax - logMin || 1;
+
+    const fipsColorMap = {};
+    for (const [fips5, val] of dataMap.entries()) {
+        const t = (Math.log1p(val) - logMin) / range;
+        fipsColorMap[fips5] = interpolateColor(t);
+    }
+
+    return { fipsColorMap, dataMap, min, max };
+}
+
+// ── Legend ─────────────────────────────────────────────────────────────────────
+function renderLegend(min, max, metric, rowCount) {
+    const steps = 6;
+    const logMin = Math.log1p(min);
+    const logMax = Math.log1p(max);
+
+    legendContainer.innerHTML = "";
+
+    const header = document.createElement("div");
+    header.className = "status-text";
+    header.style.marginBottom = "8px";
+    header.textContent = `${rowCount.toLocaleString()} counties matched`;
+    legendContainer.appendChild(header);
+
+    for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const logVal = logMin + t * (logMax - logMin);
+        const val = Math.expm1(logVal);
+        const color = interpolateColor(t);
+
+        const row = document.createElement("div");
+        row.className = "legend-row";
+        row.innerHTML = `
+            <span class="legend-swatch" style="background:${color}"></span>
+            <span class="legend-label">${i === 0 ? "Low" : i === steps ? "High" : ""}</span>
+            <span class="legend-value">${fmtK(val)}</span>
+        `;
+        legendContainer.appendChild(row);
+    }
+}
+
+// ── Map init ───────────────────────────────────────────────────────────────────
+async function initMap() {
+    map = new maplibregl.Map({
+        container: "map",
+        style: {
+            version: 8,
+            glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+            sources: {
+                "carto-dark": {
+                    type: "raster",
+                    tiles: ["https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png"],
+                    tileSize: 256,
+                    attribution: "© <a href='https://carto.com'>CARTO</a> © <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a>",
+                    maxzoom: 19
+                }
+            },
+            layers: [{
+                id: "carto-dark-layer",
+                type: "raster",
+                source: "carto-dark",
+                minzoom: 0,
+                maxzoom: 22
+            }]
+        },
+        center: [-98.5, 39.5],
+        zoom: 3.8,
+    });
+
+    await new Promise(resolve => map.on("load", resolve));
+
+    // Load US counties topojson, convert to geojson
+    setStatus("Loading county boundaries...");
+    const topoResp = await fetch(COUNTIES_GEOJSON_URL);
+    topoData = await topoResp.json();
+
+    // Convert topojson → geojson using topojson-client via CDN
+    const topoScript = document.createElement("script");
+    topoScript.src = "https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js";
+    document.head.appendChild(topoScript);
+    await new Promise(resolve => topoScript.onload = resolve);
+
+    const geojson = window.topojson.feature(topoData, topoData.objects.counties);
+    countyFeatures = geojson.features;
+
+    map.addSource("counties", {
+        type: "geojson",
+        data: geojson,
+        generateId: true,
+    });
+
+    map.addLayer({
+        id: "counties-fill",
+        type: "fill",
+        source: "counties",
+        paint: {
+            "fill-color": "#1a1e28",
+            "fill-opacity": 0.85,
+        }
+    });
+
+    map.addLayer({
+        id: "counties-border",
+        type: "line",
+        source: "counties",
+        paint: {
+            "line-color": "#2d3340",
+            "line-width": 0.4,
+        }
+    });
+
+    map.addLayer({
+        id: "counties-hover",
+        type: "fill",
+        source: "counties",
+        paint: {
+            "fill-color": "#ffffff",
+            "fill-opacity": ["case", ["boolean", ["feature-state","hover"], false], 0.12, 0]
+        }
+    });
+
+    // Hover interactions
+    let hoveredId = null;
+
+    map.on("mousemove", "counties-fill", (e) => {
+        if (!e.features.length) return;
+        map.getCanvas().style.cursor = "pointer";
+
+        if (hoveredId !== null) {
+            map.setFeatureState({ source: "counties", id: hoveredId }, { hover: false });
+        }
+        hoveredId = e.features[0].id;
+        map.setFeatureState({ source: "counties", id: hoveredId }, { hover: true });
+
+        // Tooltip
+        const props = e.features[0].properties;
+        const fips5 = props.GEOID || props.id || "";
+        updateHover(fips5, e.point);
+    });
+
+    map.on("mouseleave", "counties-fill", () => {
+        map.getCanvas().style.cursor = "";
+        if (hoveredId !== null) {
+            map.setFeatureState({ source: "counties", id: hoveredId }, { hover: false });
+            hoveredId = null;
+        }
+        tooltip.style.display = "none";
+        hoverPanel.textContent = "Hover a county on the map.";
+    });
+
+    setStatus("Map ready. Click 'Update Map' to load data.");
+}
+
+// Hover data lookup
+let currentDataMap = new Map();
+let currentMetric  = "per_capita";
+let currentLabel   = "All Categories";
+
+function updateHover(fips5, point) {
+    const val = currentDataMap.get(fips5);
+
+    // Find county name from features
+    const feature = countyFeatures?.find(f => f.properties.GEOID === fips5 || f.properties.id === fips5);
+    const countyName = feature?.properties?.name || fips5 || "Unknown";
+
+    const metricLabel = currentMetric === "per_capita" ? "Per Capita" : "Total Spending";
+    const valStr = val != null ? fmt(val) : "No data";
+
+    // Update sidebar panel
+    hoverPanel.innerHTML = `
+        <strong>${countyName}</strong><br/>
+        ${currentLabel}<br/>
+        ${metricLabel}: <strong>${valStr}</strong>
+    `;
+
+    // Update tooltip
+    ttTitle.textContent = countyName;
+    ttCounty.textContent = `FIPS: ${fips5}`;
+    ttMetric.textContent = `${metricLabel} — ${currentLabel}`;
+    ttAmount.textContent = valStr;
+
+    tooltip.style.display = "block";
+    tooltip.style.left  = (point.x + 16) + "px";
+    tooltip.style.top   = (point.y - 10) + "px";
+}
+
+// ── Render choropleth on map ───────────────────────────────────────────────────
+async function renderChoropleth() {
+    setError("");
+    setLoading(true, "Querying database...");
+
+    try {
+        const itemCode = categorySelect.value;
+        const year     = parseInt(yearInput.value, 10);
+        const metric   = metricSelect.value;
+
+        if (!itemCode) { setError("Select a category."); setLoading(false); return; }
+        if (!year || year < 1900 || year > 2100) { setError("Enter a valid year."); setLoading(false); return; }
+
+        const selectedText = categorySelect.options[categorySelect.selectedIndex]?.text || itemCode;
+        currentLabel  = selectedText.length > 40 ? selectedText.slice(0, 40) + "…" : selectedText;
+        currentMetric = metric;
+
+        setStatus("Fetching from S3 (range requests)...");
+        const t0   = performance.now();
+        const rows = await queryCountyData(itemCode, year, metric);
+        const ms   = Math.round(performance.now() - t0);
+
+        if (!rows.length) {
+            setError(`No data found for "${selectedText}" in ${year}.`);
+            setLoading(false);
+            return;
+        }
+
+        setStatus(`${rows.length} counties loaded in ${ms}ms — building colors...`);
+
+        const { fipsColorMap, dataMap, min, max } = buildChoropleth(rows, metric);
+        currentDataMap = dataMap;
+
+        map.setPaintProperty("counties-fill", "fill-color", buildFillColorExpression(fipsColorMap));
+
+        renderLegend(min, max, metric, rows.length);
+        setStatus(`Showing ${rows.length} counties — ${ms}ms query.`);
+
+    } catch (err) {
+        console.error(err);
+        setError("Query failed: " + (err.message || String(err)));
+    } finally {
+        setLoading(false);
+    }
+}
+
+// ── Boot sequence ──────────────────────────────────────────────────────────────
+(async () => {
+    try {
+        setLoading(true, "Initializing...");
+
+        // Init DB and map in parallel
+        await Promise.all([
+            initDb().then(() => loadCategories()),
+            initMap()
+        ]);
+
+        renderBtn.addEventListener("click", renderChoropleth);
+
+        // Auto-render on load with a sensible default
+        await renderChoropleth();
+
+    } catch (err) {
+        console.error(err);
+        setError("Initialization failed: " + (err.message || String(err)));
+        setLoading(false);
+    }
+})();
+</script>
+
+</body>
+</html>

@@ -103,6 +103,46 @@ Turn public finance files into clear, searchable, and trustworthy civic data for
 - [ ] Soft launch (limited audience) for 3-7 days.
 - [ ] Public launch with monitoring dashboard and daily triage routine for first 2 weeks.
 
+### Phase 7: Interactive Choropleth Map — Serverless SQLite on S3
+
+A client-side map that lets residents visually explore government finance data by geography, powered by `sql.js-httpvfs` and HTTP Range Requests so the browser only downloads the kilobytes of data it actually needs.
+
+#### Phase 7.1: SQLite Database Build ✅ COMPLETE
+- [x] Export the relevant columns from PostgreSQL (`govlens.vw_finance_enriched`) to a flat SQLite file using a Python script.
+  - Include: `unit_id`, `unit_name`, `state_fips`, `county_fips`, `gov_type_code`, `item_code`, `amount_thousands`, `population`, `year`.
+  - Script: `scripts/export_sqlite_map.py` — streams data via `COPY … TO STDOUT` (no file-path quoting issues).
+- [x] Set `PRAGMA page_size = 4096` and `PRAGMA journal_mode = DELETE` before loading data so the file is compatible with byte-range reads.
+- [x] Create indexes on the columns the map will filter by: `state_fips`, `county_fips`, `item_code`, `year` (composite and individual).
+- [x] Write a validation step that counts rows and spot-checks a known government against the source PostgreSQL data (WA state spot-check, null checks, index count, page_size verification).
+- [x] Add this export script to the existing data refresh pipeline (`scripts/run_full_data_load.py`) as step 5; skippable with `--skip-sqlite-export`.
+
+#### Phase 7.2: S3 Hosting and CORS Configuration
+- [ ] Create an S3 bucket (or reuse the EC2-adjacent one) for static assets and the SQLite file.
+- [ ] Upload the `.sqlite3` file and the static map HTML/JS/CSS.
+- [ ] Configure the bucket CORS policy to allow `GET` requests from the app's origin and expose the `Accept-Ranges`, `Content-Length`, and `Content-Range` response headers.
+- [ ] **Critical:** Disable S3 content encoding / compression for `.sqlite3` objects. GZIP or Brotli on the file breaks byte-range offsets and will cause silent query failures.
+- [ ] Set a `Cache-Control` header on the SQLite file (e.g., `max-age=86400`) so returning users don't re-fetch index blocks they already have.
+- [ ] Optionally chunk the database into ≤10MB pieces using the `sql.js-httpvfs` chunk tool to stay within browser cache limits if the file grows large.
+
+#### Phase 7.3: Frontend Map Build ✅ COMPLETE
+- [x] Add a new static page (`map.html`) linked from the nav bar on `index.html`.
+- [x] Load **MapLibre GL JS** via CDN with a CARTO dark basemap.
+- [x] Load US county GeoJSON boundaries via `us-atlas` topojson (Census TIGER, CDN).
+- [x] Load `sql.js-httpvfs` WebAssembly worker wired to the S3 SQLite URL.
+- [x] Implement the query→color pipeline:
+  - Sidebar controls: expense category (populated from DB), year, per-capita vs total metric.
+  - Parameterized SQL groups by `county_fips` + `state_fips`, aggregates `amount_thousands`.
+  - Log-scale color normalization → 8-stop blue gradient fill expression on MapLibre layer.
+  - `counties-hover` layer highlights county on mouseover.
+- [x] Loading overlay with spinner while range requests are in flight; error state if query fails.
+- [x] Tooltip and sidebar hover panel showing county name, FIPS, metric label, and value.
+
+#### Phase 7.4: Performance and Validation
+- [ ] Measure cold-load data transfer per query (target: < 200 KB for a county-level filter).
+- [ ] Verify that no full-table scan occurs by checking query plans with `.explain()` in the browser console.
+- [ ] Test CORS and range requests from the production domain (not just localhost).
+- [ ] Add a cache-busting strategy for SQLite file updates (version suffix or S3 object versioning).
+
 ## Post-Launch Expansion
 - [ ] Enable full US refresh cadence once WA launch metrics are stable.
 - [ ] Add resident-focused explainers (glossary and source lineage per metric).
@@ -110,7 +150,8 @@ Turn public finance files into clear, searchable, and trustworthy civic data for
 
 ## Tech Stack
 - Backend: Java 17, Spring Boot
-- Database: PostgreSQL
+- Database: PostgreSQL (primary), SQLite (map read-only export)
 - Data Pipeline: Python scripts + SQL load scripts
-- Frontend: Static web app (current), production build pipeline planned
+- Frontend: Static web app with production build pipeline; map page uses `sql.js-httpvfs` + MapLibre GL JS
+- Hosting: EC2 (API + app), S3 (static assets + SQLite map database)
 - Source Data: U.S. Census 2023 Annual Survey of State and Local Government Finances
