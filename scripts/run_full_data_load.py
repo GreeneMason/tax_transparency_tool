@@ -4,7 +4,7 @@ GovLens Data Load Orchestrator
 
 Runs the complete ETL pipeline:
 1. Parse FinEstDAT fixed-width file to CSV
-2. Load staging table via psql \copy
+2. Load staging table via psql \\copy
 3. Promote staging to dimensions and facts
 4. Run release-gate validation checks
 5. Generate structured load report (JSON)
@@ -24,10 +24,13 @@ from typing import Dict, List, Any
 
 
 class DataLoadOrchestrator:
-    def __init__(self, workspace_root: Path, env_config: Dict[str, str], skip_sqlite_export: bool = False):
+    def __init__(self, workspace_root: Path, env_config: Dict[str, str], skip_sqlite_export: bool = False, s3_bucket: str | None = None, s3_region: str = "us-east-1", s3_prefix: str = ""):
         self.workspace_root = workspace_root
         self.env_config = env_config
         self.skip_sqlite_export = skip_sqlite_export
+        self.s3_bucket = s3_bucket
+        self.s3_region = s3_region
+        self.s3_prefix = s3_prefix
         self.report: Dict[str, Any] = {
             "timestamp": datetime.utcnow().isoformat(),
             "workspace_root": str(workspace_root),
@@ -166,6 +169,23 @@ class DataLoadOrchestrator:
             "Promote staging data to dimensions (dim_*) and fact (fact_finance_unit_item_year)",
         )
 
+    def run_s3_deploy(self) -> bool:
+        """Step 6: Upload SQLite chunks + static assets to S3 (Phase 7.2)."""
+        cmd = [
+            sys.executable,
+            "scripts/deploy_s3.py",
+            "--bucket",     self.s3_bucket,
+            "--region",     self.s3_region,
+            "--apply-cors",
+        ]
+        if self.s3_prefix:
+            cmd += ["--prefix", self.s3_prefix]
+        return self.run_step(
+            "s3_deploy",
+            cmd,
+            "Upload SQLite map database chunks and static HTML assets to S3",
+        )
+
     def run_sqlite_export(self) -> bool:
         """Step 5: Export enriched finance data to SQLite for Phase 7 choropleth map."""
         cmd = [
@@ -267,6 +287,11 @@ class DataLoadOrchestrator:
                     self.report["summary"]["status"] = "failed"
                     return 1
 
+            if self.s3_bucket:
+                if not self.run_s3_deploy():
+                    self.report["summary"]["status"] = "failed"
+                    return 1
+
             self.collect_stats()
             self.report["summary"]["status"] = "success"
             print("\n" + "=" * 70)
@@ -322,6 +347,21 @@ def build_parser() -> argparse.ArgumentParser:
         default=False,
         help="Skip the Phase 7.1 SQLite map export step",
     )
+    parser.add_argument(
+        "--s3-bucket",
+        default=None,
+        help="S3 bucket name for Phase 7.2 deploy (omit to skip S3 upload)",
+    )
+    parser.add_argument(
+        "--s3-region",
+        default="us-east-1",
+        help="AWS region for S3 deploy (default: us-east-1)",
+    )
+    parser.add_argument(
+        "--s3-prefix",
+        default="",
+        help="Key prefix inside the S3 bucket (e.g. 'assets/')",
+    )
     return parser
 
 
@@ -336,7 +376,14 @@ def main() -> int:
         "PATH": f"C:\\Program Files\\PostgreSQL\\17\\bin;{Path.home()}\\AppData\\Local\\Programs\\Python\\Python311\\Scripts",
     }
 
-    orchestrator = DataLoadOrchestrator(args.workspace_root, env_config, skip_sqlite_export=args.skip_sqlite_export)
+    orchestrator = DataLoadOrchestrator(
+        args.workspace_root,
+        env_config,
+        skip_sqlite_export=args.skip_sqlite_export,
+        s3_bucket=args.s3_bucket,
+        s3_region=args.s3_region,
+        s3_prefix=args.s3_prefix,
+    )
     return orchestrator.run()
 
 

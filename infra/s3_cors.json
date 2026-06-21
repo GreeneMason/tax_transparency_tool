@@ -1,0 +1,14 @@
+{
+  "CORSRules": [
+    {
+      "AllowedOrigins": [
+        "https://publictaxdata.org",
+        "https://www.publictaxdata.org"
+      ],
+      "AllowedMethods": ["GET", "HEAD"],
+      "AllowedHeaders": ["Range", "Accept-Encoding", "Authorization"],
+      "ExposeHeaders": ["Accept-Ranges", "Content-Length", "Content-Range"],
+      "MaxAgeSeconds": 86400
+    }
+  ]
+}
