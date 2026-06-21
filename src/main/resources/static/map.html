@@ -271,6 +271,13 @@
         </div>
 
         <div class="sidebar-section">
+            <label for="govTypeSelect">Government Layer</label>
+            <select id="govTypeSelect">
+                <option value="__ALL__">All Layers (Combined)</option>
+            </select>
+        </div>
+
+        <div class="sidebar-section">
             <label for="categorySelect">Expense Category</label>
             <select id="categorySelect">
                 <option value="">Loading categories...</option>
@@ -371,6 +378,7 @@ const COLOR_STOPS = [
 ];
 
 // ── DOM refs ───────────────────────────────────────────────────────────────────
+const govTypeSelect   = document.getElementById("govTypeSelect");
 const categorySelect  = document.getElementById("categorySelect");
 const yearInput       = document.getElementById("yearInput");
 const metricSelect    = document.getElementById("metricSelect");
@@ -475,11 +483,28 @@ async function loadCategories() {
     }
 }
 
+// ── API: load government type list ────────────────────────────────────────────
+async function loadGovTypes() {
+    const resp = await apiFetch("/api/v1/map/gov-types");
+    if (!resp.ok) throw new Error("Failed to load gov types: " + resp.status);
+    const types = await resp.json();
+
+    // Keep the "All Layers" option already in the HTML, append specific types
+    for (const entry of types) {
+        const opt = document.createElement("option");
+        opt.value = entry.govTypeCode;
+        opt.textContent = entry.govTypeDescription;
+        govTypeSelect.appendChild(opt);
+    }
+}
+
 // ── API: fetch county spending ─────────────────────────────────────────────────
-async function queryCountyData(itemCode, year) {
-    const resp = await apiFetch(
-        `/api/v1/map/county-spending?itemCode=${encodeURIComponent(itemCode)}&year=${encodeURIComponent(year)}`
-    );
+async function queryCountyData(itemCode, year, govTypeCode) {
+    let url = `/api/v1/map/county-spending?itemCode=${encodeURIComponent(itemCode)}&year=${encodeURIComponent(year)}`;
+    if (govTypeCode && govTypeCode !== "__ALL__") {
+        url += `&govTypeCode=${encodeURIComponent(govTypeCode)}`;
+    }
+    const resp = await apiFetch(url);
     if (!resp.ok) {
         const err = await resp.json().catch(() => ({}));
         throw new Error(err.error || `API error ${resp.status}`);
@@ -710,20 +735,22 @@ async function renderChoropleth() {
     setLoading(true, "Querying database...");
 
     try {
-        const itemCode = categorySelect.value;
-        const year     = parseInt(yearInput.value, 10);
-        const metric   = metricSelect.value;
+        const itemCode    = categorySelect.value;
+        const year        = parseInt(yearInput.value, 10);
+        const metric      = metricSelect.value;
+        const govTypeCode = govTypeSelect.value;
 
         if (!itemCode) { setError("Select a category."); setLoading(false); return; }
         if (!year || year < 1900 || year > 2100) { setError("Enter a valid year."); setLoading(false); return; }
 
-        const selectedText = categorySelect.options[categorySelect.selectedIndex]?.text || itemCode;
+        const selectedText    = categorySelect.options[categorySelect.selectedIndex]?.text || itemCode;
+        const govTypeText     = govTypeSelect.options[govTypeSelect.selectedIndex]?.text || "All Layers";
         currentLabel  = selectedText.length > 40 ? selectedText.slice(0, 40) + "…" : selectedText;
         currentMetric = metric;
 
         setStatus("Fetching from API...");
         const t0   = performance.now();
-        const rows = await queryCountyData(itemCode, year);
+        const rows = await queryCountyData(itemCode, year, govTypeCode);
         const ms   = Math.round(performance.now() - t0);
 
         if (!rows.length) {
@@ -755,9 +782,10 @@ async function renderChoropleth() {
     try {
         setLoading(true, "Initializing...");
 
-        // Load categories and map in parallel
+        // Load categories, gov types, and map in parallel
         await Promise.all([
             loadCategories(),
+            loadGovTypes(),
             initMap()
         ]);
 

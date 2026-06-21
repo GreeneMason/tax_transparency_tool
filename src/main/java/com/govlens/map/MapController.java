@@ -6,9 +6,13 @@ package com.govlens.map;
  * GET /api/v1/map/item-codes
  *     Returns all distinct item codes with descriptions for the category dropdown.
  *
- * GET /api/v1/map/county-spending?itemCode=X&year=Y
- *     Returns county-level aggregated spending for one item code + year.
+ * GET /api/v1/map/gov-types
+ *     Returns all government type codes for the layer dropdown.
+ *
+ * GET /api/v1/map/county-spending?itemCode=X&year=Y[&govTypeCode=Z]
+ *     Returns county-level aggregated spending.
  *     itemCode = "__ALL__" aggregates across all categories.
+ *     govTypeCode omitted or "__ALL__" aggregates across all government types.
  *
  * Responses are small enough to be cached by the browser (Cache-Control: max-age).
  */
@@ -42,18 +46,37 @@ public class MapController {
                 .body(codes);
     }
 
+    @GetMapping("/gov-types")
+    public ResponseEntity<?> getGovTypes() {
+        List<GovTypeEntry> types = repository.findAllGovTypes();
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.maxAge(1, TimeUnit.DAYS))
+                .body(types);
+    }
+
     @GetMapping("/county-spending")
     public ResponseEntity<?> getCountySpending(
             @RequestParam("itemCode") String itemCode,
-            @RequestParam("year") int year
+            @RequestParam("year") int year,
+            @RequestParam(value = "govTypeCode", required = false) String govTypeCode
     ) {
         if (year < 1900 || year > 2100) {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid year."));
         }
 
-        List<CountySpendingResult> results = "__ALL__".equals(itemCode)
-                ? repository.findCountySpendingAll(year)
-                : repository.findCountySpending(itemCode, year);
+        boolean allTypes = govTypeCode == null || govTypeCode.isBlank() || "__ALL__".equals(govTypeCode);
+        boolean allItems = "__ALL__".equals(itemCode);
+
+        List<CountySpendingResult> results;
+        if (allItems && allTypes) {
+            results = repository.findCountySpendingAll(year);
+        } else if (allItems) {
+            results = repository.findCountySpendingAllByType(year, govTypeCode);
+        } else if (allTypes) {
+            results = repository.findCountySpending(itemCode, year);
+        } else {
+            results = repository.findCountySpendingByType(itemCode, year, govTypeCode);
+        }
 
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS))
