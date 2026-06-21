@@ -64,18 +64,21 @@ public class MapController {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid year."));
         }
 
-        boolean allTypes = govTypeCode == null || govTypeCode.isBlank() || "__ALL__".equals(govTypeCode);
+        String normalizedGovTypeCode = govTypeCode == null ? null : govTypeCode.trim();
+        boolean allTypes = normalizedGovTypeCode == null
+                || normalizedGovTypeCode.isBlank()
+                || "__ALL__".equals(normalizedGovTypeCode);
         boolean allItems = "__ALL__".equals(itemCode);
 
         List<CountySpendingResult> results;
         if (allItems && allTypes) {
             results = repository.findCountySpendingAll(year);
         } else if (allItems) {
-            results = repository.findCountySpendingAllByType(year, govTypeCode);
+            results = repository.findCountySpendingAllByType(year, normalizedGovTypeCode);
         } else if (allTypes) {
             results = repository.findCountySpending(itemCode, year);
         } else {
-            results = repository.findCountySpendingByType(itemCode, year, govTypeCode);
+            results = repository.findCountySpendingByType(itemCode, year, normalizedGovTypeCode);
         }
 
         return ResponseEntity.ok()

@@ -491,8 +491,10 @@ async function loadGovTypes() {
 
     // Keep the "All Layers" option already in the HTML, append specific types
     for (const entry of types) {
+        const code = String(entry.govTypeCode || "").trim();
+        if (!code) continue;
         const opt = document.createElement("option");
-        opt.value = entry.govTypeCode;
+        opt.value = code;
         opt.textContent = entry.govTypeDescription;
         govTypeSelect.appendChild(opt);
     }
@@ -574,6 +576,12 @@ function renderLegend(min, max, metric, rowCount) {
         `;
         legendContainer.appendChild(row);
     }
+}
+
+function clearChoropleth() {
+    currentDataMap = new Map();
+    map.setPaintProperty("counties-fill", "fill-color", buildFillColorExpression({}));
+    renderLegend(0, 0, metricSelect.value, 0);
 }
 
 // ── Map init ───────────────────────────────────────────────────────────────────
@@ -738,7 +746,7 @@ async function renderChoropleth() {
         const itemCode    = categorySelect.value;
         const year        = parseInt(yearInput.value, 10);
         const metric      = metricSelect.value;
-        const govTypeCode = govTypeSelect.value;
+        const govTypeCode = (govTypeSelect.value || "").trim();
 
         if (!itemCode) { setError("Select a category."); setLoading(false); return; }
         if (!year || year < 1900 || year > 2100) { setError("Enter a valid year."); setLoading(false); return; }
@@ -754,7 +762,9 @@ async function renderChoropleth() {
         const ms   = Math.round(performance.now() - t0);
 
         if (!rows.length) {
+            clearChoropleth();
             setError(`No data found for "${selectedText}" in ${year}.`);
+            setStatus("0 counties matched the selected filters.");
             setLoading(false);
             return;
         }
@@ -770,6 +780,7 @@ async function renderChoropleth() {
         setStatus(`Showing ${rows.length} counties — ${ms}ms query.`);
 
     } catch (err) {
+        clearChoropleth();
         console.error(err);
         setError("Query failed: " + (err.message || String(err)));
     } finally {

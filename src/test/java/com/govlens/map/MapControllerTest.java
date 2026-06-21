@@ -139,4 +139,19 @@ class MapControllerTest {
 
         verify(repository).findCountySpendingByType("E12", 2023, "2");
     }
+
+        @Test
+        void getCountySpending_specificItemWithWhitespaceType_trimsBeforeQuery() throws Exception {
+                when(repository.findCountySpendingByType(eq("E12"), anyInt(), eq("2"))).thenReturn(List.of(
+                                new CountySpendingResult("53033", "53", "WA", "King", 1000L, 100)
+                ));
+
+                mockMvc.perform(get("/api/v1/map/county-spending")
+                                                .param("itemCode", "E12")
+                                                .param("year", "2023")
+                                                .param("govTypeCode", " 2 "))
+                                .andExpect(status().isOk());
+
+                verify(repository).findCountySpendingByType("E12", 2023, "2");
+        }
 }
